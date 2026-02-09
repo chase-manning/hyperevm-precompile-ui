@@ -2,12 +2,6 @@ import { useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
 
-function getSystemTheme(): Theme {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
-
 function isValidTheme(value: string | null): value is Theme {
   return value === "light" || value === "dark";
 }
