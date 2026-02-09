@@ -1,0 +1,7 @@
+{
+  "name": "hyperevm-precompile-ui",
+  "compatibility_date": "2026-02-09",
+  "assets": {
+    "directory": "./dist"
+  }
+}
