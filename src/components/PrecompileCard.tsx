@@ -13,6 +13,12 @@ import { Label } from "@/components/ui/label";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { publicClient } from "@/config/client";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import type { ExtractAbiFunctionNames } from "abitype";
+
+type ContractFunctionName = ExtractAbiFunctionNames<
+  typeof CONTRACT_ABI,
+  "view"
+>;
 
 export interface InputConfig {
   name: string;
@@ -22,7 +28,7 @@ export interface InputConfig {
 }
 
 export interface PrecompileConfig {
-  functionName: string;
+  functionName: ContractFunctionName;
   title: string;
   description: string;
   badge: string;
@@ -57,7 +63,7 @@ export function PrecompileCard({ config }: { config: PrecompileConfig }) {
       const data = await publicClient.readContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
-        functionName: config.functionName as never,
+        functionName: config.functionName,
         args: (args.length > 0 ? args : undefined) as never,
       });
 

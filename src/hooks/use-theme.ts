@@ -8,9 +8,13 @@ function getSystemTheme(): Theme {
     : "light";
 }
 
+function isValidTheme(value: string | null): value is Theme {
+  return value === "light" || value === "dark";
+}
+
 function getInitialTheme(): Theme {
-  const stored = localStorage.getItem("theme") as Theme | null;
-  return stored ?? getSystemTheme();
+  const stored = localStorage.getItem("theme");
+  return isValidTheme(stored) ? stored : getSystemTheme();
 }
 
 export function useTheme() {
