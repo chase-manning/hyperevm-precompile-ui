@@ -14,7 +14,7 @@ function isValidTheme(value: string | null): value is Theme {
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem("theme");
-  return isValidTheme(stored) ? stored : getSystemTheme();
+  return isValidTheme(stored) ? stored : "light";
 }
 
 export function useTheme() {
