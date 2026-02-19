@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResultDisplay } from "@/components/ResultDisplay";
-import { publicClient } from "@/config/client";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
 
 type ContractFunctionName = ExtractAbiFunctionNames<
@@ -42,7 +42,12 @@ function parseArg(value: string, type: InputConfig["type"]): unknown {
   return Number(trimmed);
 }
 
-export function PrecompileCard({ config }: { config: PrecompileConfig }) {
+interface PrecompileCardProps {
+  config: PrecompileConfig;
+  publicClient: PublicClient;
+}
+
+export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);

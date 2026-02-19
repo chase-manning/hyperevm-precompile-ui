@@ -1,6 +1,9 @@
+import { useState, useMemo, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
-import { Sun, Moon, Github } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import {
   PrecompileCard,
   type PrecompileConfig,
@@ -281,8 +284,38 @@ const precompiles: PrecompileConfig[] = [
   },
 ];
 
+function getStoredRpc(): string {
+  try {
+    return localStorage.getItem("customRpcUrl") || "";
+  } catch {
+    return "";
+  }
+}
+
 function App() {
   const { theme, toggleTheme } = useTheme();
+  const [showSettings, setShowSettings] = useState(false);
+  const [customRpc, setCustomRpc] = useState(getStoredRpc);
+
+  const handleRpcChange = useCallback((value: string) => {
+    setCustomRpc(value);
+    try {
+      if (value.trim()) {
+        localStorage.setItem("customRpcUrl", value.trim());
+      } else {
+        localStorage.removeItem("customRpcUrl");
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  const publicClient = useMemo(
+    () => makePublicClient(customRpc.trim() || undefined),
+    [customRpc]
+  );
+
+  const isCustomRpc = customRpc.trim().length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -292,17 +325,28 @@ function App() {
             <h1 className="text-3xl font-bold tracking-tight">
               Hyperliquid Precompile Explorer
             </h1>
-            <button
-              onClick={toggleTheme}
-              className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSettings((prev) => !prev)}
+                className={`rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer ${
+                  isCustomRpc ? "text-primary border-primary/50" : ""
+                }`}
+                aria-label="Toggle settings"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
           <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
             A lightweight interface for reading on chain data from{" "}
@@ -317,6 +361,39 @@ function App() {
             . Query oracle prices, positions, balances, and more directly from
             HyperCore, with results guaranteed to match the latest L1 state.
           </p>
+
+          {showSettings && (
+            <div className="mt-6 rounded-lg border border-border bg-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label
+                  htmlFor="custom-rpc"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Custom RPC URL
+                </label>
+                {isCustomRpc && (
+                  <button
+                    onClick={() => handleRpcChange("")}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Reset to default
+                  </button>
+                )}
+              </div>
+              <Input
+                id="custom-rpc"
+                placeholder={DEFAULT_RPC_URL}
+                value={customRpc}
+                onChange={(e) => handleRpcChange(e.target.value)}
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                {isCustomRpc
+                  ? `Using custom RPC: ${customRpc.trim()}`
+                  : `Using default RPC: ${DEFAULT_RPC_URL}`}
+              </p>
+            </div>
+          )}
         </header>
 
         <Separator className="mb-10" />
@@ -327,7 +404,11 @@ function App() {
           </h2>
           <div className="grid gap-4">
             {precompiles.map((config) => (
-              <PrecompileCard key={config.functionName} config={config} />
+              <PrecompileCard
+                key={config.functionName}
+                config={config}
+                publicClient={publicClient}
+              />
             ))}
           </div>
         </section>
