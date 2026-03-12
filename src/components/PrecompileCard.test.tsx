@@ -153,7 +153,7 @@ describe("PrecompileCard", () => {
       />
     );
     fireEvent.change(screen.getByPlaceholderText("0x..."), {
-      target: { value: "0x1234567890abcdef" },
+      target: { value: "0x1234567890abcdef1234567890abcdef12345678" },
     });
     expect(screen.getByRole("button", { name: "Query" })).toBeEnabled();
   });
