@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -13,10 +13,7 @@ import { useRpcHealth } from "@/hooks/use-rpc-health";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
 import { validateRpcUrl } from "@/lib/validation";
-import {
-  PrecompileCard,
-  type PrecompileConfig,
-} from "@/components/PrecompileCard";
+import { PrecompileCard } from "@/components/PrecompileCard";
 import { RpcStatusIndicator } from "@/components/RpcStatusIndicator";
 import { precompiles } from "@/config/precompiles";
 import {
