@@ -281,7 +281,9 @@ function App() {
                       config={config}
                       publicClient={publicClient}
                       initialValues={
-                        targetFn === config.functionName ? initialValues : undefined
+                        targetFn === config.functionName
+                          ? initialValues
+                          : undefined
                       }
                       autoExecute={targetFn === config.functionName}
                     />
