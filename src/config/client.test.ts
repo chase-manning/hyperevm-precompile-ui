@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  DEFAULT_RPC_URL,
-  hyperEvmMainnet,
-  makePublicClient,
-} from "./client";
+import { DEFAULT_RPC_URL, hyperEvmMainnet, makePublicClient } from "./client";
 
 describe("DEFAULT_RPC_URL", () => {
   it("points to the Hyperliquid EVM RPC", () => {

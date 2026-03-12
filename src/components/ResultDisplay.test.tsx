@@ -156,9 +156,7 @@ describe("ResultDisplay", () => {
   });
 
   it("returns null for object with only numeric keys", () => {
-    const { container } = render(
-      <ResultDisplay data={{ 0: "a", 1: "b" }} />
-    );
+    const { container } = render(<ResultDisplay data={{ 0: "a", 1: "b" }} />);
     expect(container.innerHTML).toBe("");
   });
 });

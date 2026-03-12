@@ -204,9 +204,7 @@ describe("PrecompileCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Query" }));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("OraclePxPrecompileFailed")
-      ).toBeInTheDocument();
+      expect(screen.getByText("OraclePxPrecompileFailed")).toBeInTheDocument();
     });
   });
 
