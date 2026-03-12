@@ -6,6 +6,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { PrecompileCard } from "@/components/PrecompileCard";
 import { precompiles } from "@/config/precompiles";
+import { cn } from "@/lib/utils";
 
 function getStoredRpc(): string {
   try {
@@ -51,9 +52,10 @@ function App() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowSettings((prev) => !prev)}
-                className={`rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer ${
-                  isCustomRpc ? "text-primary border-primary/50" : ""
-                }`}
+                className={cn(
+                  "rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer",
+                  isCustomRpc && "text-primary border-primary/50"
+                )}
                 aria-label="Toggle settings"
               >
                 <Settings className="h-4 w-4" />
