@@ -3,6 +3,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Sun, Moon, Github, Settings, RotateCcw, Search } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useRpcHealth } from "@/hooks/use-rpc-health";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
 import { validateRpcUrl } from "@/lib/validation";
@@ -10,6 +11,7 @@ import {
   PrecompileCard,
   type PrecompileConfig,
 } from "@/components/PrecompileCard";
+import { RpcStatusIndicator } from "@/components/RpcStatusIndicator";
 import {
   safeGetItem,
   safeSetItem,
@@ -414,6 +416,13 @@ function App() {
 
   const isCustomRpc = customRpc.trim().length > 0 && !rpcError;
 
+  const {
+    status: rpcStatus,
+    blockNumber,
+    latencyMs,
+    recheck,
+  } = useRpcHealth(publicClient);
+
   // Sync filter state to URL
   useEffect(() => {
     updateUrlParams(activeCategory, searchQuery);
@@ -464,7 +473,7 @@ function App() {
               <button
                 onClick={() => setShowSettings((prev) => !prev)}
                 className={cn(
-                  "rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer",
+                  "relative rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer",
                   isCustomRpc && "text-primary border-primary/50"
                 )}
                 aria-label="Toggle settings"
@@ -473,6 +482,16 @@ function App() {
                 title="Toggle settings"
               >
                 <Settings className="h-4 w-4" />
+                <span
+                  className={cn(
+                    "absolute -top-0.5 -right-0.5 block h-2 w-2 rounded-full border border-background",
+                    rpcStatus === "connected" && "bg-green-500",
+                    rpcStatus === "slow" && "bg-yellow-400",
+                    rpcStatus === "unreachable" && "bg-destructive",
+                    rpcStatus === "checking" && "bg-yellow-400 animate-pulse"
+                  )}
+                  aria-label={`RPC status: ${rpcStatus}`}
+                />
               </button>
               <button
                 onClick={toggleTheme}
@@ -549,11 +568,41 @@ function App() {
                   {rpcError}
                 </p>
               ) : (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {isCustomRpc
-                    ? `Using custom RPC: ${customRpc.trim()}`
-                    : `Using default RPC: ${DEFAULT_RPC_URL}`}
-                </p>
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {isCustomRpc
+                      ? `Using custom RPC: ${customRpc.trim()}`
+                      : `Using default RPC: ${DEFAULT_RPC_URL}`}
+                  </p>
+                  <RpcStatusIndicator
+                    status={rpcStatus}
+                    blockNumber={blockNumber}
+                    latencyMs={latencyMs}
+                  />
+                  {isCustomRpc && rpcStatus === "unreachable" && (
+                    <div
+                      className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                      role="alert"
+                    >
+                      <span>
+                        Custom RPC is unreachable. Check the URL or{" "}
+                        <button
+                          onClick={() => handleRpcChange("")}
+                          className="underline underline-offset-2 font-medium hover:text-destructive/80 transition-colors cursor-pointer"
+                        >
+                          revert to default
+                        </button>
+                        .
+                      </span>
+                      <button
+                        onClick={recheck}
+                        className="ml-auto shrink-0 underline underline-offset-2 font-medium hover:text-destructive/80 transition-colors cursor-pointer"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}
