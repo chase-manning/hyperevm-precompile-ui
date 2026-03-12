@@ -2,6 +2,7 @@
   "name": "hyperevm-precompile-ui",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "yarn@4.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -47,5 +48,8 @@
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1",
     "vitest": "^4.1.0"
+  },
+  "resolutions": {
+    "vite": "^7.3.1"
   }
 }
