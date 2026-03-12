@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { safeGetItem, safeSetItem, STORAGE_KEYS } from "@/lib/safe-local-storage";
 
 type Theme = "light" | "dark";
 
@@ -7,7 +8,7 @@ function isValidTheme(value: string | null): value is Theme {
 }
 
 function getInitialTheme(): Theme {
-  const stored = localStorage.getItem("theme");
+  const stored = safeGetItem(STORAGE_KEYS.THEME);
   return isValidTheme(stored) ? stored : "light";
 }
 
@@ -21,7 +22,7 @@ export function useTheme() {
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("theme", theme);
+    safeSetItem(STORAGE_KEYS.THEME, theme);
   }, [theme]);
 
   const toggleTheme = () => {
