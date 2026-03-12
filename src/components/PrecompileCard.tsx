@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -24,7 +24,7 @@ import {
   REFRESH_INTERVALS,
   type RefreshInterval,
 } from "@/hooks/use-auto-refresh";
-import { Info } from "lucide-react";
+import { Check, Info, Link } from "lucide-react";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
 
@@ -83,13 +83,31 @@ function formatSecondsAgo(seconds: number): string {
 interface PrecompileCardProps {
   config: PrecompileConfig;
   publicClient: PublicClient;
+  initialValues?: Record<string, string>;
+  autoExecute?: boolean;
 }
 
-export const PrecompileCard = memo(function PrecompileCard({
-  config,
-  publicClient,
-}: PrecompileCardProps) {
-  const [values, setValues] = useState<Record<string, string>>({});
+export const PrecompileCard = forwardRef<HTMLDivElement, PrecompileCardProps>(
+  function PrecompileCard(
+    { config, publicClient, initialValues, autoExecute },
+    ref
+  ) {
+  const [values, setValues] = useState<Record<string, string>>(
+    () => {
+      if (initialValues) {
+        const vals: Record<string, string> = {};
+        for (const input of config.inputs) {
+          if (initialValues[input.name]) {
+            vals[input.name] = initialValues[input.name];
+          }
+        }
+        return vals;
+      }
+      return {};
+    }
+  );
+  const [shareCopied, setShareCopied] = useState(false);
+  const shareTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -186,12 +204,60 @@ export const PrecompileCard = memo(function PrecompileCard({
     interval: refreshInterval,
   });
 
+  // Auto-execute query when deep-linked with pre-filled inputs
+  const hasAutoExecuted = useRef(false);
+  useEffect(() => {
+    if (autoExecute && !hasAutoExecuted.current && canQuery) {
+      hasAutoExecuted.current = true;
+      handleQuery();
+    }
+  }, [autoExecute, canQuery, handleQuery]);
+
+  const handleShare = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      params.set("fn", config.functionName);
+      for (const input of config.inputs) {
+        const val = values[input.name];
+        if (val && val.trim()) {
+          params.set(input.name, val.trim());
+        }
+      }
+      const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      if (shareTimeoutRef.current) clearTimeout(shareTimeoutRef.current);
+      shareTimeoutRef.current = setTimeout(() => setShareCopied(false), 1500);
+    } catch {
+      // Clipboard API may not be available in some contexts
+    }
+  }, [config.functionName, config.inputs, values]);
+
   return (
-    <Card>
+    <Card ref={ref}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">{config.title}</CardTitle>
-          <Badge variant="secondary">{config.badge}</Badge>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={handleShare}
+                  aria-label={shareCopied ? "Link copied" : "Copy link to this query"}
+                >
+                  {shareCopied ? (
+                    <Check className="size-3 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <Link className="size-3" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{shareCopied ? "Link copied!" : "Copy link"}</TooltipContent>
+            </Tooltip>
+            <Badge variant="secondary">{config.badge}</Badge>
+          </div>
         </div>
         <CardDescription>{config.description}</CardDescription>
       </CardHeader>
