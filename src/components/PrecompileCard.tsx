@@ -142,13 +142,13 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
           </Button>
 
           {error && (
-            <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
-              <p className="text-sm text-destructive">{error}</p>
+            <div className="bg-destructive/10 border-destructive/20 rounded-md border p-3">
+              <p className="text-destructive text-sm">{error}</p>
             </div>
           )}
 
           {result !== null && !error && hasQueried && (
-            <div className="rounded-md bg-muted/50 border border-border p-3">
+            <div className="bg-muted/50 border-border rounded-md border p-3">
               <ResultDisplay data={result} />
             </div>
           )}

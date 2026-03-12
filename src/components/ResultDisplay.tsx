@@ -31,7 +31,9 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
 
   if (Array.isArray(data)) {
     if (data.length === 0) {
-      return <span className="text-sm text-muted-foreground italic">Empty</span>;
+      return (
+        <span className="text-muted-foreground text-sm italic">Empty</span>
+      );
     }
 
     const isPrimitiveArray = data.every(
@@ -55,11 +57,9 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
         {data.map((item, i) => (
           <div
             key={i}
-            className="border border-border rounded-md p-3 mb-2 last:mb-0"
+            className="border-border mb-2 rounded-md border p-3 last:mb-0"
           >
-            <div className="text-xs text-muted-foreground mb-1">
-              [{i}]
-            </div>
+            <div className="text-muted-foreground mb-1 text-xs">[{i}]</div>
             <ResultDisplay data={item} depth={depth + 1} />
           </div>
         ))}
@@ -84,7 +84,7 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
           if (isComplex) {
             return (
               <div key={key}>
-                <div className="text-xs font-medium text-muted-foreground mb-1">
+                <div className="text-muted-foreground mb-1 text-xs font-medium">
                   {key}
                 </div>
                 <div className="ml-3">
@@ -96,7 +96,7 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
 
           return (
             <div key={key} className="flex items-baseline gap-2">
-              <span className="text-xs font-medium text-muted-foreground shrink-0">
+              <span className="text-muted-foreground shrink-0 text-xs font-medium">
                 {key}
               </span>
               <ResultDisplay data={value} depth={depth + 1} />

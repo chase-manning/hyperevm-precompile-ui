@@ -21,8 +21,7 @@ const precompiles: PrecompileConfig[] = [
   {
     functionName: "getCoreUserExists",
     title: "Core User Exists",
-    description:
-      "Check whether a given address exists as a user on HyperCore.",
+    description: "Check whether a given address exists as a user on HyperCore.",
     badge: "User",
     inputs: [
       {
@@ -51,8 +50,7 @@ const precompiles: PrecompileConfig[] = [
   {
     functionName: "getOraclePx",
     title: "Oracle Price",
-    description:
-      "Query the oracle price for a perpetual asset by its index.",
+    description: "Query the oracle price for a perpetual asset by its index.",
     badge: "Perps",
     inputs: [
       {
@@ -66,8 +64,7 @@ const precompiles: PrecompileConfig[] = [
   {
     functionName: "getMarkPx",
     title: "Mark Price",
-    description:
-      "Query the mark price for a perpetual asset by its index.",
+    description: "Query the mark price for a perpetual asset by its index.",
     badge: "Perps",
     inputs: [
       {
@@ -81,8 +78,7 @@ const precompiles: PrecompileConfig[] = [
   {
     functionName: "getBbo",
     title: "Best Bid & Offer",
-    description:
-      "Get the current best bid and ask for a perpetual asset.",
+    description: "Get the current best bid and ask for a perpetual asset.",
     badge: "Perps",
     inputs: [
       {
@@ -189,8 +185,7 @@ const precompiles: PrecompileConfig[] = [
   {
     functionName: "getSpotPx",
     title: "Spot Price",
-    description:
-      "Query the current price for a spot market by its index.",
+    description: "Query the current price for a spot market by its index.",
     badge: "Spot",
     inputs: [
       {
@@ -318,17 +313,17 @@ function App() {
   const isCustomRpc = customRpc.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       <div className="mx-auto max-w-3xl px-6 py-16">
         <header className="mb-12">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">
               Hyperliquid Precompile Explorer
             </h1>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowSettings((prev) => !prev)}
-                className={`rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer ${
+                className={`border-border text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer rounded-md border p-2 transition-colors ${
                   isCustomRpc ? "text-primary border-primary/50" : ""
                 }`}
                 aria-label="Toggle settings"
@@ -337,7 +332,7 @@ function App() {
               </button>
               <button
                 onClick={toggleTheme}
-                className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                className="border-border text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer rounded-md border p-2 transition-colors"
                 aria-label="Toggle theme"
               >
                 {theme === "dark" ? (
@@ -348,13 +343,13 @@ function App() {
               </button>
             </div>
           </div>
-          <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
+          <p className="text-muted-foreground max-w-2xl text-lg leading-relaxed">
             A lightweight interface for reading on chain data from{" "}
             <a
               href="https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/hyperevm/interacting-with-hypercore"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground underline underline-offset-4 hover:text-primary transition-colors"
+              className="text-foreground hover:text-primary underline underline-offset-4 transition-colors"
             >
               Hyperliquid precompiles
             </a>
@@ -363,18 +358,18 @@ function App() {
           </p>
 
           {showSettings && (
-            <div className="mt-6 rounded-lg border border-border bg-card p-4">
-              <div className="flex items-center justify-between mb-2">
+            <div className="border-border bg-card mt-6 rounded-lg border p-4">
+              <div className="mb-2 flex items-center justify-between">
                 <label
                   htmlFor="custom-rpc"
-                  className="text-sm font-medium text-foreground"
+                  className="text-foreground text-sm font-medium"
                 >
                   Custom RPC URL
                 </label>
                 {isCustomRpc && (
                   <button
                     onClick={() => handleRpcChange("")}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer items-center gap-1 text-xs transition-colors"
                   >
                     <RotateCcw className="h-3 w-3" />
                     Reset to default
@@ -387,7 +382,7 @@ function App() {
                 value={customRpc}
                 onChange={(e) => handleRpcChange(e.target.value)}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-2 text-xs">
                 {isCustomRpc
                   ? `Using custom RPC: ${customRpc.trim()}`
                   : `Using default RPC: ${DEFAULT_RPC_URL}`}
@@ -399,7 +394,7 @@ function App() {
         <Separator className="mb-10" />
 
         <section>
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
+          <h2 className="text-muted-foreground mb-6 text-sm font-medium tracking-wider uppercase">
             Available Reads
           </h2>
           <div className="grid gap-4">
@@ -415,16 +410,16 @@ function App() {
 
         <Separator className="mt-10 mb-6" />
 
-        <footer className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
+        <footer className="text-muted-foreground flex flex-col items-center gap-2 text-xs">
           <div>
             Reading from contract{" "}
             <a
               href="https://hyperevmscan.io/address/0x4e4726F2D4F652151Eb80254C2C8859d152382Ce"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-4 hover:text-foreground transition-colors"
+              className="hover:text-foreground underline underline-offset-4 transition-colors"
             >
-              <code className="bg-muted px-1.5 py-0.5 rounded text-[11px]">
+              <code className="bg-muted rounded px-1.5 py-0.5 text-[11px]">
                 0x4e47...82Ce
               </code>
             </a>{" "}
@@ -434,7 +429,7 @@ function App() {
             href="https://github.com/chase-manning/hyperevm-precompile-ui"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+            className="hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
           >
             <Github className="h-3.5 w-3.5" />
             Open source on GitHub
