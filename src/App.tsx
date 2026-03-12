@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
+import { safeGetItem, safeSetItem, safeRemoveItem, STORAGE_KEYS } from "@/lib/safe-local-storage";
 import {
   PrecompileCard,
   type PrecompileConfig,
@@ -285,11 +286,7 @@ const precompiles: PrecompileConfig[] = [
 ];
 
 function getStoredRpc(): string {
-  try {
-    return localStorage.getItem("customRpcUrl") || "";
-  } catch {
-    return "";
-  }
+  return safeGetItem(STORAGE_KEYS.CUSTOM_RPC_URL) || "";
 }
 
 function App() {
@@ -299,14 +296,10 @@ function App() {
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
-    try {
-      if (value.trim()) {
-        localStorage.setItem("customRpcUrl", value.trim());
-      } else {
-        localStorage.removeItem("customRpcUrl");
-      }
-    } catch {
-      // localStorage unavailable
+    if (value.trim()) {
+      safeSetItem(STORAGE_KEYS.CUSTOM_RPC_URL, value.trim());
+    } else {
+      safeRemoveItem(STORAGE_KEYS.CUSTOM_RPC_URL);
     }
   }, []);
 
