@@ -152,10 +152,7 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
           {result !== null && !error && hasQueried && (
             <div className="relative rounded-md bg-muted/50 border border-border p-3">
               <div className="absolute top-1.5 right-1.5">
-                <CopyButton
-                  value={serializeResult(result)}
-                  size="icon-sm"
-                />
+                <CopyButton value={serializeResult(result)} size="icon-sm" />
               </div>
               <div className="pr-8">
                 <ResultDisplay data={result} />

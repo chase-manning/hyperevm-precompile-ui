@@ -43,7 +43,9 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
 
   if (Array.isArray(data)) {
     if (data.length === 0) {
-      return <span className="text-sm text-muted-foreground italic">Empty</span>;
+      return (
+        <span className="text-sm text-muted-foreground italic">Empty</span>
+      );
     }
 
     const isPrimitiveArray = data.every(
@@ -66,9 +68,7 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
             key={i}
             className="border border-border rounded-md p-3 mb-2 last:mb-0"
           >
-            <div className="text-xs text-muted-foreground mb-1">
-              [{i}]
-            </div>
+            <div className="text-xs text-muted-foreground mb-1">[{i}]</div>
             <ResultDisplay data={item} depth={depth + 1} />
           </div>
         ))}

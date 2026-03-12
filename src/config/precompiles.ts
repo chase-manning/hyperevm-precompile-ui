@@ -1,4 +1,7 @@
-import type { InputConfig, PrecompileConfig } from "@/components/PrecompileCard";
+import type {
+  InputConfig,
+  PrecompileConfig,
+} from "@/components/PrecompileCard";
 
 const USER_ADDRESS_INPUT: InputConfig = {
   name: "user",
@@ -40,8 +43,7 @@ export const precompiles: PrecompileConfig[] = [
   {
     functionName: "getCoreUserExists",
     title: "Core User Exists",
-    description:
-      "Check whether a given address exists as a user on HyperCore.",
+    description: "Check whether a given address exists as a user on HyperCore.",
     badge: "User",
     inputs: [USER_ADDRESS_INPUT],
   },
@@ -56,8 +58,7 @@ export const precompiles: PrecompileConfig[] = [
   {
     functionName: "getOraclePx",
     title: "Oracle Price",
-    description:
-      "Query the oracle price for a perpetual asset by its index.",
+    description: "Query the oracle price for a perpetual asset by its index.",
     badge: "Perps",
     inputs: [
       {
@@ -69,8 +70,7 @@ export const precompiles: PrecompileConfig[] = [
   {
     functionName: "getMarkPx",
     title: "Mark Price",
-    description:
-      "Query the mark price for a perpetual asset by its index.",
+    description: "Query the mark price for a perpetual asset by its index.",
     badge: "Perps",
     inputs: [
       {
@@ -82,8 +82,7 @@ export const precompiles: PrecompileConfig[] = [
   {
     functionName: "getBbo",
     title: "Best Bid & Offer",
-    description:
-      "Get the current best bid and ask for a perpetual asset.",
+    description: "Get the current best bid and ask for a perpetual asset.",
     badge: "Perps",
     inputs: [
       {
@@ -158,8 +157,7 @@ export const precompiles: PrecompileConfig[] = [
   {
     functionName: "getSpotPx",
     title: "Spot Price",
-    description:
-      "Query the current price for a spot market by its index.",
+    description: "Query the current price for a spot market by its index.",
     badge: "Spot",
     inputs: [SPOT_INDEX_INPUT],
   },
