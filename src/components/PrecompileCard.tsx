@@ -16,6 +16,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { ResultDisplay } from "@/components/ResultDisplay";
+import { CopyButton } from "@/components/CopyButton";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { validateInput } from "@/lib/validation";
 import { Info } from "lucide-react";
@@ -250,8 +251,13 @@ export const PrecompileCard = memo(function PrecompileCard({
           )}
 
           {result !== null && !error && hasQueried && (
-            <div className="rounded-md bg-muted/50 border border-border p-3">
-              <ResultDisplay data={result} />
+            <div className="relative rounded-md bg-muted/50 border border-border p-3">
+              <div className="absolute top-1.5 right-1.5">
+                <CopyButton value={result} />
+              </div>
+              <div className="pr-6">
+                <ResultDisplay data={result} />
+              </div>
             </div>
           )}
         </div>
