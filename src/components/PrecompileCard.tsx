@@ -10,8 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { Info } from "lucide-react";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
 
@@ -25,6 +31,7 @@ export interface InputConfig {
   label: string;
   placeholder: string;
   type: "address" | "uint16" | "uint32" | "uint64";
+  tooltip?: string;
 }
 
 export interface PrecompileConfig {
@@ -110,9 +117,25 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
         <div className="space-y-3">
           {config.inputs.map((input) => (
             <div key={input.name} className="space-y-1.5">
-              <Label htmlFor={`${config.functionName}-${input.name}`}>
-                {input.label}
-              </Label>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor={`${config.functionName}-${input.name}`}>
+                  {input.label}
+                </Label>
+                {input.tooltip && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground transition-colors cursor-help"
+                        aria-label={`Info about ${input.label}`}
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{input.tooltip}</TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
               <Input
                 id={`${config.functionName}-${input.name}`}
                 placeholder={input.placeholder}

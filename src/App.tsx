@@ -29,6 +29,8 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address starting with 0x (42 characters). This is the HyperCore user address to check.",
       },
     ],
   },
@@ -44,6 +46,8 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address starting with 0x (42 characters). The user whose withdrawable balance you want to query.",
       },
     ],
   },
@@ -58,6 +62,8 @@ const precompiles: PrecompileConfig[] = [
         label: "Perp Index",
         placeholder: "e.g. 0 for BTC, 1 for ETH",
         type: "uint32",
+        tooltip:
+          "Perpetual asset index (uint32, 0 to 4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
       },
     ],
   },
@@ -72,6 +78,8 @@ const precompiles: PrecompileConfig[] = [
         label: "Perp Index",
         placeholder: "e.g. 0 for BTC, 1 for ETH",
         type: "uint32",
+        tooltip:
+          "Perpetual asset index (uint32, 0 to 4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
       },
     ],
   },
@@ -86,6 +94,8 @@ const precompiles: PrecompileConfig[] = [
         label: "Asset Index",
         placeholder: "e.g. 0",
         type: "uint64",
+        tooltip:
+          "Asset index for the perpetual market (uint64). Common values: 0 = BTC, 1 = ETH.",
       },
     ],
   },
@@ -101,6 +111,8 @@ const precompiles: PrecompileConfig[] = [
         label: "Perp Index",
         placeholder: "e.g. 0",
         type: "uint32",
+        tooltip:
+          "Perpetual asset index (uint32, 0 to 4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
       },
     ],
   },
@@ -116,12 +128,16 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address starting with 0x (42 characters). The trader whose position you want to query.",
       },
       {
         name: "perp",
         label: "Perp Index",
         placeholder: "e.g. 0",
         type: "uint16",
+        tooltip:
+          "Perpetual asset index (uint16, 0 to 65535). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
       },
     ],
   },
@@ -137,12 +153,16 @@ const precompiles: PrecompileConfig[] = [
         label: "Perp Dex Index",
         placeholder: "e.g. 0",
         type: "uint32",
+        tooltip:
+          "Perp DEX index (uint32, 0 to 4294967295). Use 0 for the default Hyperliquid perp DEX.",
       },
       {
         name: "user",
         label: "User Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address starting with 0x (42 characters). The user whose margin summary you want to view.",
       },
     ],
   },
@@ -158,12 +178,16 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address starting with 0x (42 characters). The user whose spot balance you want to check.",
       },
       {
         name: "token",
         label: "Token Index",
         placeholder: "e.g. 0",
         type: "uint64",
+        tooltip:
+          "Token index on HyperCore (uint64). Use 0 for USDC. Other token indices can be looked up via Token Info.",
       },
     ],
   },
@@ -179,6 +203,8 @@ const precompiles: PrecompileConfig[] = [
         label: "Spot Index",
         placeholder: "e.g. 0",
         type: "uint64",
+        tooltip:
+          "Spot market index (uint64). Identifies a specific spot trading pair on Hyperliquid.",
       },
     ],
   },
@@ -193,6 +219,8 @@ const precompiles: PrecompileConfig[] = [
         label: "Spot Index",
         placeholder: "e.g. 0",
         type: "uint64",
+        tooltip:
+          "Spot market index (uint64). Identifies a specific spot trading pair on Hyperliquid.",
       },
     ],
   },
@@ -208,6 +236,8 @@ const precompiles: PrecompileConfig[] = [
         label: "Token Index",
         placeholder: "e.g. 0",
         type: "uint64",
+        tooltip:
+          "Token index on HyperCore (uint64). Use 0 for USDC. Each token has a unique index on the platform.",
       },
     ],
   },
@@ -223,6 +253,8 @@ const precompiles: PrecompileConfig[] = [
         label: "Token Index",
         placeholder: "e.g. 0",
         type: "uint64",
+        tooltip:
+          "Token index on HyperCore (uint64). Use 0 for USDC. Each token has a unique index on the platform.",
       },
     ],
   },
@@ -238,12 +270,16 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address starting with 0x (42 characters). The user whose vault equity you want to query.",
       },
       {
         name: "vault",
         label: "Vault Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address starting with 0x (42 characters). The vault contract address to query equity for.",
       },
     ],
   },
@@ -259,6 +295,8 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address starting with 0x (42 characters). The delegator whose staking delegations you want to view.",
       },
     ],
   },
@@ -274,6 +312,8 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address starting with 0x (42 characters). The delegator whose staking summary you want to view.",
       },
     ],
   },
