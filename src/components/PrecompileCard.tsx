@@ -42,30 +42,30 @@ export interface PrecompileConfig {
   inputs: InputConfig[];
 }
 
-function parseArg(value: string, type: InputConfig["type"]): unknown {
+const UINT_MAX: Record<string, bigint> = {
+  uint16: BigInt(2 ** 16 - 1),
+  uint32: BigInt(2 ** 32 - 1),
+  uint64: (BigInt(1) << BigInt(64)) - BigInt(1),
+};
+
+export function parseArg(value: string, type: InputConfig["type"]): unknown {
   const trimmed = value.trim();
   if (type === "address") return trimmed as `0x${string}`;
 
   if (!/^\d+$/.test(trimmed)) {
-    throw new Error(`Invalid ${type} value: expected a non-negative integer`);
+    throw new Error(`Invalid ${type} value: expected a non-negative integer.`);
   }
 
-  if (type === "uint64") {
-    const val = BigInt(trimmed);
-    if (val > BigInt("18446744073709551615")) {
-      throw new Error("Invalid uint64 value: exceeds max uint64");
-    }
-    return val;
+  const n = BigInt(trimmed);
+  const max = UINT_MAX[type];
+  if (max !== undefined && n > max) {
+    throw new Error(
+      `Value exceeds maximum for ${type} (max ${max.toString()}).`
+    );
   }
 
-  const num = Number(trimmed);
-  if (type === "uint16" && (num > 65535 || !Number.isInteger(num))) {
-    throw new Error("Invalid uint16 value: exceeds max uint16 (65535)");
-  }
-  if (type === "uint32" && (num > 4294967295 || !Number.isInteger(num))) {
-    throw new Error("Invalid uint32 value: exceeds max uint32 (4294967295)");
-  }
-  return num;
+  if (type === "uint64") return n;
+  return Number(n);
 }
 
 interface PrecompileCardProps {
