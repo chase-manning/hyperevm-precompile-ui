@@ -50,7 +50,7 @@ function App() {
   const isCustomRpc = customRpc.trim().length > 0;
 
   const { status, blockNumber, latencyMs, recheck } =
-    useRpcHealth(publicClient);
+    useRpcHealth(publicClient, customRpc);
 
   // Re-check health whenever the settings panel is opened
   const handleToggleSettings = useCallback(() => {

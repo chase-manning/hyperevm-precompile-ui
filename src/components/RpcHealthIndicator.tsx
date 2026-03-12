@@ -55,7 +55,7 @@ export function RpcHealthIndicator({
         {config.label}
         {blockNumber !== null && (
           <span className="ml-1 text-muted-foreground/70">
-            · Block {blockNumber.toLocaleString()}
+            · Block {blockNumber.toString()}
           </span>
         )}
         {latencyMs !== null && (
