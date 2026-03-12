@@ -5,6 +5,7 @@ const USER_ADDRESS_INPUT: InputConfig = {
   label: "User Address",
   placeholder: "0x...",
   type: "address",
+  tooltip: "Ethereum address starting with 0x (42 characters total).",
 };
 
 const PERP_INDEX_INPUT: InputConfig = {
@@ -12,6 +13,8 @@ const PERP_INDEX_INPUT: InputConfig = {
   label: "Perp Index",
   placeholder: "e.g. 0",
   type: "uint32",
+  tooltip:
+    "Perpetual asset index (uint32, 0–4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
 };
 
 const TOKEN_INDEX_INPUT: InputConfig = {
@@ -19,6 +22,8 @@ const TOKEN_INDEX_INPUT: InputConfig = {
   label: "Token Index",
   placeholder: "e.g. 0",
   type: "uint64",
+  tooltip:
+    "Token index on HyperCore (uint64). 0 = USDC, 1 = PURR, 2 = HYPE. Check Hyperliquid docs for the full list.",
 };
 
 const SPOT_INDEX_INPUT: InputConfig = {
@@ -26,6 +31,8 @@ const SPOT_INDEX_INPUT: InputConfig = {
   label: "Spot Index",
   placeholder: "e.g. 0",
   type: "uint64",
+  tooltip:
+    "Spot market index (uint64). Each spot market pairs two tokens. 0 = PURR/USDC, 1 = HYPE/USDC.",
 };
 
 export const precompiles: PrecompileConfig[] = [
@@ -91,6 +98,8 @@ export const precompiles: PrecompileConfig[] = [
         label: "Asset Index",
         placeholder: "e.g. 0",
         type: "uint64",
+        tooltip:
+          "Perpetual asset index (uint64). Common values: 0 = BTC, 1 = ETH.",
       },
     ],
   },
@@ -120,6 +129,8 @@ export const precompiles: PrecompileConfig[] = [
         label: "Perp Index",
         placeholder: "e.g. 0",
         type: "uint16",
+        tooltip:
+          "Perpetual asset index (uint16, 0–65535). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
       },
     ],
   },
@@ -135,6 +146,8 @@ export const precompiles: PrecompileConfig[] = [
         label: "Perp Dex Index",
         placeholder: "e.g. 0",
         type: "uint32",
+        tooltip:
+          "Perp DEX index (uint32, 0–4294967295). Use 0 for the default Hyperliquid perp DEX.",
       },
       USER_ADDRESS_INPUT,
     ],
@@ -192,6 +205,8 @@ export const precompiles: PrecompileConfig[] = [
         label: "Vault Address",
         placeholder: "0x...",
         type: "address",
+        tooltip:
+          "Ethereum address of the vault contract starting with 0x (42 characters total).",
       },
     ],
   },

@@ -10,8 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { Info } from "lucide-react";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
 
@@ -25,6 +31,7 @@ export interface InputConfig {
   label: string;
   placeholder: string;
   type: "address" | "uint16" | "uint32" | "uint64";
+  tooltip?: string;
 }
 
 export interface PrecompileConfig {
@@ -35,11 +42,30 @@ export interface PrecompileConfig {
   inputs: InputConfig[];
 }
 
+const UINT_MAX: Record<string, bigint> = {
+  uint16: BigInt(2 ** 16 - 1),
+  uint32: BigInt(2 ** 32 - 1),
+  uint64: (BigInt(1) << BigInt(64)) - BigInt(1),
+};
+
 function parseArg(value: string, type: InputConfig["type"]): unknown {
   const trimmed = value.trim();
   if (type === "address") return trimmed as `0x${string}`;
-  if (type === "uint64") return BigInt(trimmed);
-  return Number(trimmed);
+
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error(`Invalid ${type} value: expected a non-negative integer.`);
+  }
+
+  const n = BigInt(trimmed);
+  const max = UINT_MAX[type];
+  if (max !== undefined && n > max) {
+    throw new Error(
+      `Value exceeds maximum for ${type} (max ${max.toString()}).`
+    );
+  }
+
+  if (type === "uint64") return n;
+  return Number(n);
 }
 
 interface PrecompileCardProps {
@@ -110,9 +136,27 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
         <div className="space-y-3">
           {config.inputs.map((input) => (
             <div key={input.name} className="space-y-1.5">
-              <Label htmlFor={`${config.functionName}-${input.name}`}>
-                {input.label}
-              </Label>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor={`${config.functionName}-${input.name}`}>
+                  {input.label}
+                </Label>
+                {input.tooltip && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label={`Info about ${input.label}`}
+                      >
+                        <Info className="size-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      {input.tooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
               <Input
                 id={`${config.functionName}-${input.name}`}
                 placeholder={input.placeholder}
