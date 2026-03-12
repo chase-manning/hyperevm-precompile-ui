@@ -64,6 +64,7 @@ const precompiles: PrecompileConfig[] = [
     title: "Oracle Price",
     description: "Query the oracle price for a perpetual asset by its index.",
     badge: "Perps",
+    autoRefreshable: true,
     inputs: [
       {
         name: "perpIndex",
@@ -80,6 +81,7 @@ const precompiles: PrecompileConfig[] = [
     title: "Mark Price",
     description: "Query the mark price for a perpetual asset by its index.",
     badge: "Perps",
+    autoRefreshable: true,
     inputs: [
       {
         name: "perpIndex",
@@ -96,6 +98,7 @@ const precompiles: PrecompileConfig[] = [
     title: "Best Bid & Offer",
     description: "Get the current best bid and ask for a perpetual asset.",
     badge: "Perps",
+    autoRefreshable: true,
     inputs: [
       {
         name: "asset",
@@ -221,6 +224,7 @@ const precompiles: PrecompileConfig[] = [
     title: "Spot Price",
     description: "Query the current price for a spot market by its index.",
     badge: "Spot",
+    autoRefreshable: true,
     inputs: [
       {
         name: "spotIndex",
