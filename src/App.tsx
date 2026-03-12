@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -58,22 +58,26 @@ function App() {
   const [search, setSearch] = useState(getInitialSearch);
   const [activeCategory, setActiveCategory] = useState(getInitialCategory);
 
-  // Use refs to avoid stale closures when both filters are cleared simultaneously
-  const searchRef = useRef(search);
-  searchRef.current = search;
-  const categoryRef = useRef(activeCategory);
-  categoryRef.current = activeCategory;
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+      syncFiltersToUrl(value, activeCategory);
+    },
+    [activeCategory]
+  );
 
-  const handleSearchChange = useCallback((value: string) => {
-    setSearch(value);
-    searchRef.current = value;
-    syncFiltersToUrl(value, categoryRef.current);
-  }, []);
+  const handleCategoryChange = useCallback(
+    (category: string) => {
+      setActiveCategory(category);
+      syncFiltersToUrl(search, category);
+    },
+    [search]
+  );
 
-  const handleCategoryChange = useCallback((category: string) => {
-    setActiveCategory(category);
-    categoryRef.current = category;
-    syncFiltersToUrl(searchRef.current, category);
+  const handleClearFilters = useCallback(() => {
+    setSearch("");
+    setActiveCategory(ALL_CATEGORY);
+    syncFiltersToUrl("", ALL_CATEGORY);
   }, []);
 
   const handleRpcChange = useCallback((value: string) => {
@@ -281,10 +285,7 @@ function App() {
                 No precompiles match your filters.
               </p>
               <button
-                onClick={() => {
-                  handleSearchChange("");
-                  handleCategoryChange(ALL_CATEGORY);
-                }}
+                onClick={handleClearFilters}
                 className="text-sm text-primary hover:underline cursor-pointer"
               >
                 Clear filters
