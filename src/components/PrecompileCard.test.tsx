@@ -118,9 +118,7 @@ describe("PrecompileCard", () => {
 
   it("queries and displays result for a no-input precompile", async () => {
     const mockClient = makeMockClient(999n);
-    render(
-      <PrecompileCard config={noInputConfig} publicClient={mockClient} />
-    );
+    render(<PrecompileCard config={noInputConfig} publicClient={mockClient} />);
 
     fireEvent.click(screen.getAllByRole("button", { name: /query/i })[0]);
 
@@ -132,10 +130,7 @@ describe("PrecompileCard", () => {
   it("queries with user input and displays result", async () => {
     const mockClient = makeMockClient(true);
     render(
-      <PrecompileCard
-        config={singleInputConfig}
-        publicClient={mockClient}
-      />
+      <PrecompileCard config={singleInputConfig} publicClient={mockClient} />
     );
 
     const input = screen.getByLabelText("User Address");
@@ -155,9 +150,7 @@ describe("PrecompileCard", () => {
       readContract: vi.fn().mockRejectedValue(new Error("Network error")),
     } as never;
 
-    render(
-      <PrecompileCard config={noInputConfig} publicClient={mockClient} />
-    );
+    render(<PrecompileCard config={noInputConfig} publicClient={mockClient} />);
 
     fireEvent.click(screen.getAllByRole("button", { name: /query/i })[0]);
 
@@ -177,9 +170,7 @@ describe("PrecompileCard", () => {
         ),
     } as never;
 
-    render(
-      <PrecompileCard config={noInputConfig} publicClient={mockClient} />
-    );
+    render(<PrecompileCard config={noInputConfig} publicClient={mockClient} />);
 
     fireEvent.click(screen.getAllByRole("button", { name: /query/i })[0]);
 
@@ -192,14 +183,10 @@ describe("PrecompileCard", () => {
 
   it("shows generic revert message for unrecognised revert", async () => {
     const mockClient = {
-      readContract: vi
-        .fn()
-        .mockRejectedValue(new Error("execution reverted")),
+      readContract: vi.fn().mockRejectedValue(new Error("execution reverted")),
     } as never;
 
-    render(
-      <PrecompileCard config={noInputConfig} publicClient={mockClient} />
-    );
+    render(<PrecompileCard config={noInputConfig} publicClient={mockClient} />);
 
     fireEvent.click(screen.getAllByRole("button", { name: /query/i })[0]);
 
@@ -215,9 +202,7 @@ describe("PrecompileCard", () => {
       readContract: vi.fn().mockRejectedValue("string error"),
     } as never;
 
-    render(
-      <PrecompileCard config={noInputConfig} publicClient={mockClient} />
-    );
+    render(<PrecompileCard config={noInputConfig} publicClient={mockClient} />);
 
     fireEvent.click(screen.getAllByRole("button", { name: /query/i })[0]);
 

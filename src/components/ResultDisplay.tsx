@@ -1,5 +1,9 @@
 import { memo } from "react";
-import { isPrimitive, formatValue, isNamedKey } from "@/lib/result-display-utils";
+import {
+  isPrimitive,
+  formatValue,
+  isNamedKey,
+} from "@/lib/result-display-utils";
 import { CopyButton } from "@/components/CopyButton";
 
 interface ResultDisplayProps {

@@ -42,9 +42,7 @@ describe("Precompile configs", () => {
   });
 
   it("ABI has view stateMutability for all functions", () => {
-    const functions = CONTRACT_ABI.filter(
-      (entry) => entry.type === "function"
-    );
+    const functions = CONTRACT_ABI.filter((entry) => entry.type === "function");
     for (const fn of functions) {
       expect(fn.stateMutability).toBe("view");
     }

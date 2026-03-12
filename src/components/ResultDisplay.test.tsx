@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { formatValue, isNamedKey, isPrimitive } from "@/lib/result-display-utils";
+import {
+  formatValue,
+  isNamedKey,
+  isPrimitive,
+} from "@/lib/result-display-utils";
 import { ResultDisplay } from "./ResultDisplay";
 
 // ── isPrimitive ─────────────────────────────────────────────────────

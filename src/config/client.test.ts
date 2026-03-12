@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  makePublicClient,
-  DEFAULT_RPC_URL,
-  hyperEvmMainnet,
-} from "./client";
+import { makePublicClient, DEFAULT_RPC_URL, hyperEvmMainnet } from "./client";
 
 describe("hyperEvmMainnet", () => {
   it("has chain id 999", () => {
