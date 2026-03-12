@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { isPrimitive, formatValue, isNamedKey } from "@/lib/result-display-utils";
+import { CopyButton } from "@/components/CopyButton";
 
 interface ResultDisplayProps {
   data: unknown;
@@ -14,7 +15,12 @@ export const ResultDisplay = memo(function ResultDisplay({
 
   if (isPrimitive(data)) {
     return (
-      <span className="font-mono text-sm break-all">{formatValue(data)}</span>
+      <span className="group/copy inline-flex items-center gap-1 font-mono text-sm break-all">
+        {formatValue(data)}
+        <span className="opacity-0 group-hover/copy:opacity-100 transition-opacity">
+          <CopyButton value={formatValue(data)} />
+        </span>
+      </span>
     );
   }
 
@@ -29,8 +35,11 @@ export const ResultDisplay = memo(function ResultDisplay({
 
     if (isPrimitiveArray) {
       return (
-        <span className="font-mono text-sm break-all">
+        <span className="group/copy inline-flex items-center gap-1 font-mono text-sm break-all">
           [{data.map(formatValue).join(", ")}]
+          <span className="opacity-0 group-hover/copy:opacity-100 transition-opacity">
+            <CopyButton value={data.map(formatValue).join(", ")} />
+          </span>
         </span>
       );
     }
