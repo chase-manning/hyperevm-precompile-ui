@@ -75,7 +75,7 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
     if (entries.length === 0) return null;
 
     return (
-      <div className={depth > 0 ? "space-y-1" : "space-y-2"}>
+      <dl className={depth > 0 ? "space-y-1" : "space-y-2"}>
         {entries.map(([key, value]) => {
           const isComplex =
             (typeof value === "object" && value !== null) ||
@@ -84,26 +84,28 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
           if (isComplex) {
             return (
               <div key={key}>
-                <div className="text-xs font-medium text-muted-foreground mb-1">
+                <dt className="text-xs font-medium text-muted-foreground mb-1">
                   {key}
-                </div>
-                <div className="ml-3">
+                </dt>
+                <dd className="ml-3">
                   <ResultDisplay data={value} depth={depth + 1} />
-                </div>
+                </dd>
               </div>
             );
           }
 
           return (
             <div key={key} className="flex items-baseline gap-2">
-              <span className="text-xs font-medium text-muted-foreground shrink-0">
+              <dt className="text-xs font-medium text-muted-foreground shrink-0">
                 {key}
-              </span>
-              <ResultDisplay data={value} depth={depth + 1} />
+              </dt>
+              <dd>
+                <ResultDisplay data={value} depth={depth + 1} />
+              </dd>
             </div>
           );
         })}
-      </div>
+      </dl>
     );
   }
 

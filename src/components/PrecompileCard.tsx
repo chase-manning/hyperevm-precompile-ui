@@ -165,7 +165,11 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
           </Button>
 
           {error && (
-            <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
+            <div
+              className="rounded-md bg-destructive/10 border border-destructive/20 p-3"
+              role="alert"
+              aria-live="assertive"
+            >
               <p className="text-sm text-destructive">{error}</p>
             </div>
           )}

@@ -353,6 +353,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none"
+      >
+        Skip to content
+      </a>
       <div className="mx-auto max-w-3xl px-6 py-16">
         <header className="mb-12">
           <div className="flex items-center justify-between mb-4">
@@ -367,13 +373,25 @@ function App() {
                   isCustomRpc && "text-primary border-primary/50"
                 )}
                 aria-label="Toggle settings"
+                aria-expanded={showSettings}
+                aria-controls="settings-panel"
+                title="Toggle settings"
               >
                 <Settings className="h-4 w-4" />
               </button>
               <button
                 onClick={toggleTheme}
                 className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                aria-label="Toggle theme"
+                aria-label={
+                  theme === "dark"
+                    ? "Switch to light mode"
+                    : "Switch to dark mode"
+                }
+                title={
+                  theme === "dark"
+                    ? "Switch to light mode"
+                    : "Switch to dark mode"
+                }
               >
                 {theme === "dark" ? (
                   <Sun className="h-4 w-4" />
@@ -398,7 +416,10 @@ function App() {
           </p>
 
           {showSettings && (
-            <div className="mt-6 rounded-lg border border-border bg-card p-4">
+            <div
+              id="settings-panel"
+              className="mt-6 rounded-lg border border-border bg-card p-4"
+            >
               <div className="flex items-center justify-between mb-2">
                 <label
                   htmlFor="custom-rpc"
@@ -433,7 +454,7 @@ function App() {
 
         <Separator className="mb-10" />
 
-        <section>
+        <section id="main-content">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Available Reads
           </h2>
