@@ -25,6 +25,9 @@ export function parseArg(value: string, type: InputConfig["type"]): unknown {
   }
 
   // uint16, uint32
+  if (trimmed === "") {
+    throw new Error("Value must be a non-negative integer");
+  }
   const n = Number(trimmed);
   if (!Number.isInteger(n) || n < 0) {
     throw new Error(`Value must be a non-negative integer`);
