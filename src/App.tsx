@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -45,6 +45,22 @@ function getSearchFromUrl(): string {
   return params.get("search") || "";
 }
 
+function getFnFromUrl(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("fn") || null;
+}
+
+function getInitialValuesFromUrl(): Record<string, string> {
+  const params = new URLSearchParams(window.location.search);
+  const values: Record<string, string> = {};
+  params.forEach((value, key) => {
+    if (key !== "fn" && key !== "category" && key !== "search") {
+      values[key] = value;
+    }
+  });
+  return values;
+}
+
 function updateUrlParams(category: Category, search: string) {
   const params = new URLSearchParams(window.location.search);
   if (category !== "All") {
@@ -75,6 +91,10 @@ function App() {
   const [searchQuery, setSearchQuery] = useState(getSearchFromUrl);
   const [activeCategory, setActiveCategory] =
     useState<Category>(getCategoryFromUrl);
+
+  const [targetFn] = useState(getFnFromUrl);
+  const [initialValues] = useState(getInitialValuesFromUrl);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const rpcError = useMemo(() => validateRpcUrl(customRpc), [customRpc]);
 
@@ -113,6 +133,20 @@ function App() {
   useEffect(() => {
     updateUrlParams(activeCategory, searchQuery);
   }, [activeCategory, searchQuery]);
+
+  // Auto-scroll to targeted card
+  useEffect(() => {
+    if (targetFn && cardRefs.current[targetFn]) {
+      // Use a small delay to ensure the DOM is ready
+      const timeout = setTimeout(() => {
+        cardRefs.current[targetFn]?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 100);
+      return () => clearTimeout(timeout);
+    }
+  }, [targetFn]);
 
   const filteredPrecompiles = useMemo(() => {
     return precompiles.filter((config) => {
@@ -235,8 +269,15 @@ function App() {
               {filteredPrecompiles.map((config) => (
                 <PrecompileCard
                   key={config.functionName}
+                  ref={(el) => {
+                    cardRefs.current[config.functionName] = el;
+                  }}
                   config={config}
                   publicClient={publicClient}
+                  initialValues={
+                    targetFn === config.functionName ? initialValues : undefined
+                  }
+                  autoExecute={targetFn === config.functionName}
                 />
               ))}
             </div>
