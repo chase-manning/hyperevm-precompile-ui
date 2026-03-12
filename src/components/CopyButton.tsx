@@ -29,8 +29,7 @@ export const CopyButton = memo(function CopyButton({
 
   const handleCopy = useCallback(async () => {
     try {
-      const text =
-        typeof value === "string" ? value : serializeResult(value);
+      const text = typeof value === "string" ? value : serializeResult(value);
       await navigator.clipboard.writeText(text);
       setCopied(true);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
