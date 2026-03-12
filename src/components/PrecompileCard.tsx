@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResultDisplay } from "@/components/ResultDisplay";
+import { AutoRefreshControls } from "@/components/AutoRefreshControls";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { useAutoRefresh } from "@/hooks/use-auto-refresh";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
 
@@ -33,6 +35,7 @@ export interface PrecompileConfig {
   description: string;
   badge: string;
   inputs: InputConfig[];
+  autoRefreshable?: boolean;
 }
 
 function parseArg(value: string, type: InputConfig["type"]): unknown {
@@ -54,11 +57,9 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
   const [loading, setLoading] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
 
-  const handleQuery = async () => {
+  const executeQuery = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setResult(null);
-    setHasQueried(true);
 
     try {
       const args = config.inputs.map((input) =>
@@ -90,7 +91,19 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
     } finally {
       setLoading(false);
     }
+  }, [config, values, publicClient]);
+
+  const handleQuery = async () => {
+    setHasQueried(true);
+    setResult(null);
+    await executeQuery();
   };
+
+  const autoRefresh = useAutoRefresh({
+    onRefresh: executeQuery,
+    enabled: config.autoRefreshable === true && hasQueried,
+    interval: 10,
+  });
 
   const allInputsFilled = config.inputs.every(
     (input) => (values[input.name] || "").trim() !== ""
@@ -140,6 +153,17 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
           >
             {loading ? "Querying..." : "Query"}
           </Button>
+
+          {config.autoRefreshable && hasQueried && (
+            <AutoRefreshControls
+              isAutoRefreshing={autoRefresh.isAutoRefreshing}
+              onToggle={autoRefresh.setIsAutoRefreshing}
+              interval={autoRefresh.interval}
+              onIntervalChange={autoRefresh.setInterval}
+              intervals={autoRefresh.intervals}
+              secondsAgo={autoRefresh.secondsAgo}
+            />
+          )}
 
           {error && (
             <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
