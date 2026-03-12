@@ -5,6 +5,7 @@ import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
+import { validateRpcUrl } from "@/lib/validation";
 import {
   PrecompileCard,
   type PrecompileConfig,
@@ -335,8 +336,15 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
 
+  const rpcError = useMemo(() => validateRpcUrl(customRpc), [customRpc]);
+
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
+    const error = validateRpcUrl(value);
+    if (error) {
+      // Don't save invalid URLs to localStorage
+      return;
+    }
     if (value.trim()) {
       safeSetItem(STORAGE_KEYS.CUSTOM_RPC_URL, value.trim());
     } else {
@@ -345,11 +353,14 @@ function App() {
   }, []);
 
   const publicClient = useMemo(
-    () => makePublicClient(customRpc.trim() || undefined),
-    [customRpc]
+    () =>
+      makePublicClient(
+        !rpcError && customRpc.trim() ? customRpc.trim() : undefined
+      ),
+    [customRpc, rpcError]
   );
 
-  const isCustomRpc = customRpc.trim().length > 0;
+  const isCustomRpc = customRpc.trim().length > 0 && !rpcError;
 
   return (
     <div className="min-h-screen bg-background">
@@ -441,13 +452,25 @@ function App() {
                 id="custom-rpc"
                 placeholder={DEFAULT_RPC_URL}
                 value={customRpc}
+                aria-invalid={rpcError ? true : undefined}
+                aria-describedby={rpcError ? "rpc-error" : undefined}
                 onChange={(e) => handleRpcChange(e.target.value)}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {isCustomRpc
-                  ? `Using custom RPC: ${customRpc.trim()}`
-                  : `Using default RPC: ${DEFAULT_RPC_URL}`}
-              </p>
+              {rpcError ? (
+                <p
+                  id="rpc-error"
+                  className="mt-2 text-xs text-destructive"
+                  role="alert"
+                >
+                  {rpcError}
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {isCustomRpc
+                    ? `Using custom RPC: ${customRpc.trim()}`
+                    : `Using default RPC: ${DEFAULT_RPC_URL}`}
+                </p>
+              )}
             </div>
           )}
         </header>
