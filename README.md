@@ -10,25 +10,25 @@ Hyperliquid exposes a set of read precompiles on HyperEVM that let you query Hyp
 
 ## Available Queries
 
-| Function | Category | Inputs |
-|---|---|---|
-| `getL1BlockNumber` | System | None |
-| `getCoreUserExists` | User | address |
-| `getWithdrawable` | User | address |
-| `getOraclePx` | Perps | perp index |
-| `getMarkPx` | Perps | perp index |
-| `getBbo` | Perps | asset index |
-| `getPerpAssetInfo` | Perps | perp index |
-| `getPosition` | Perps | address, perp index |
-| `getAccountMarginSummary` | Perps | dex index, address |
-| `getSpotBalance` | Spot | address, token index |
-| `getSpotInfo` | Spot | spot index |
-| `getSpotPx` | Spot | spot index |
-| `getTokenInfo` | Spot | token index |
-| `getTokenSupply` | Spot | token index |
-| `getUserVaultEquity` | Vaults | user address, vault address |
-| `getDelegations` | Staking | address |
-| `getDelegatorSummary` | Staking | address |
+| Function                  | Category | Inputs                      |
+| ------------------------- | -------- | --------------------------- |
+| `getL1BlockNumber`        | System   | None                        |
+| `getCoreUserExists`       | User     | address                     |
+| `getWithdrawable`         | User     | address                     |
+| `getOraclePx`             | Perps    | perp index                  |
+| `getMarkPx`               | Perps    | perp index                  |
+| `getBbo`                  | Perps    | asset index                 |
+| `getPerpAssetInfo`        | Perps    | perp index                  |
+| `getPosition`             | Perps    | address, perp index         |
+| `getAccountMarginSummary` | Perps    | dex index, address          |
+| `getSpotBalance`          | Spot     | address, token index        |
+| `getSpotInfo`             | Spot     | spot index                  |
+| `getSpotPx`               | Spot     | spot index                  |
+| `getTokenInfo`            | Spot     | token index                 |
+| `getTokenSupply`          | Spot     | token index                 |
+| `getUserVaultEquity`      | Vaults   | user address, vault address |
+| `getDelegations`          | Staking  | address                     |
+| `getDelegatorSummary`     | Staking  | address                     |
 
 ## Tech Stack
 
