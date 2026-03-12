@@ -20,6 +20,11 @@ import { CopyButton } from "@/components/CopyButton";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { validateInput } from "@/lib/validation";
 import { parseArg } from "@/lib/parse-arg";
+import {
+  useAutoRefresh,
+  REFRESH_INTERVALS,
+  type RefreshInterval,
+} from "@/hooks/use-auto-refresh";
 import { Info } from "lucide-react";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
@@ -29,12 +34,18 @@ type ContractFunctionName = ExtractAbiFunctionNames<
   "view"
 >;
 
+export interface InputTooltip {
+  description: string;
+  format: string;
+  examples?: string[];
+}
+
 export interface InputConfig {
   name: string;
   label: string;
   placeholder: string;
   type: "address" | "uint16" | "uint32" | "uint64";
-  tooltip?: string;
+  tooltip?: InputTooltip;
 }
 
 export interface PrecompileConfig {
@@ -43,6 +54,14 @@ export interface PrecompileConfig {
   description: string;
   badge: string;
   inputs: InputConfig[];
+  autoRefreshable?: boolean;
+}
+
+function formatSecondsAgo(seconds: number): string {
+  if (seconds < 5) return "just now";
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}m ${seconds % 60}s ago`;
 }
 
 interface PrecompileCardProps {
@@ -60,6 +79,7 @@ export const PrecompileCard = memo(function PrecompileCard({
   const [loading, setLoading] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [refreshInterval, setRefreshInterval] = useState<RefreshInterval>(10);
 
   const validationErrors = useMemo(() => {
     const errors: Record<string, string | null> = {};
@@ -123,6 +143,33 @@ export const PrecompileCard = memo(function PrecompileCard({
     }
   }, [config.inputs, config.functionName, publicClient, values]);
 
+  // Silent refresh: updates result without clearing existing data or showing loading state
+  const handleSilentRefresh = useCallback(async () => {
+    try {
+      const args = config.inputs.map((input) =>
+        parseArg(values[input.name] || "", input.type)
+      );
+
+      const data = await publicClient.readContract({
+        address: CONTRACT_ADDRESS,
+        abi: CONTRACT_ABI,
+        functionName: config.functionName,
+        args: (args.length > 0 ? args : undefined) as never,
+      });
+
+      setResult(data);
+      setError(null);
+    } catch {
+      // Silent refresh: don't clear existing result on error
+    }
+  }, [config.inputs, config.functionName, publicClient, values]);
+
+  const autoRefresh = useAutoRefresh({
+    enabled: !!config.autoRefreshable && hasQueried && canQuery && !loading,
+    onRefresh: handleSilentRefresh,
+    interval: refreshInterval,
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -155,7 +202,28 @@ export const PrecompileCard = memo(function PrecompileCard({
                           <Info className="h-3.5 w-3.5" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent>{input.tooltip}</TooltipContent>
+                      <TooltipContent className="max-w-sm">
+                        <div className="space-y-1.5 text-left">
+                          <p>{input.tooltip.description}</p>
+                          <p>
+                            <span className="font-semibold">Format:</span>{" "}
+                            {input.tooltip.format}
+                          </p>
+                          {input.tooltip.examples &&
+                            input.tooltip.examples.length > 0 && (
+                              <div>
+                                <span className="font-semibold">Examples:</span>
+                                <ul className="mt-0.5 list-disc list-inside">
+                                  {input.tooltip.examples.map(
+                                    (example, index) => (
+                                      <li key={index}>{example}</li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+                        </div>
+                      </TooltipContent>
                     </Tooltip>
                   )}
                 </div>
@@ -222,6 +290,64 @@ export const PrecompileCard = memo(function PrecompileCard({
             >
               {loading ? "Querying..." : "Query"}
             </Button>
+          )}
+
+          {config.autoRefreshable && hasQueried && canQuery && (
+            <div className="flex items-center justify-between rounded-md bg-muted/50 border border-border px-3 py-2">
+              <div className="flex items-center gap-2">
+                {autoRefresh.isActive && (
+                  <span
+                    className="auto-refresh-pulse inline-block h-2 w-2 rounded-full bg-primary"
+                    aria-hidden="true"
+                  />
+                )}
+                <label
+                  htmlFor={`${config.functionName}-auto-refresh`}
+                  className="text-xs font-medium text-muted-foreground cursor-pointer select-none"
+                >
+                  Auto-refresh
+                </label>
+                <button
+                  id={`${config.functionName}-auto-refresh`}
+                  role="switch"
+                  aria-checked={autoRefresh.isActive}
+                  aria-label="Toggle auto-refresh"
+                  onClick={autoRefresh.toggle}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors ${
+                    autoRefresh.isActive ? "bg-primary" : "bg-input"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                      autoRefresh.isActive ? "translate-x-4" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                {autoRefresh.isActive && autoRefresh.secondsAgo !== null && (
+                  <span className="text-xs text-muted-foreground">
+                    Updated {formatSecondsAgo(autoRefresh.secondsAgo)}
+                  </span>
+                )}
+                <select
+                  aria-label="Refresh interval"
+                  value={refreshInterval}
+                  onChange={(e) => {
+                    setRefreshInterval(
+                      Number(e.target.value) as RefreshInterval
+                    );
+                  }}
+                  className="h-7 rounded-md border border-border bg-background px-2 text-xs text-foreground cursor-pointer"
+                >
+                  {REFRESH_INTERVALS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           )}
 
           {error && (
