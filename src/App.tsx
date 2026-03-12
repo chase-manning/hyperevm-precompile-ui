@@ -58,8 +58,7 @@ const precompiles: PrecompileConfig[] = [
         placeholder: "0x...",
         type: "address",
         tooltip: {
-          description:
-            "The user whose withdrawable balance you want to query.",
+          description: "The user whose withdrawable balance you want to query.",
           format: "Ethereum address starting with 0x (42 hex characters)",
           examples: ["0x1234...abcd"],
         },
@@ -294,8 +293,7 @@ const precompiles: PrecompileConfig[] = [
         placeholder: "e.g. 0",
         type: "uint64",
         tooltip: {
-          description:
-            "Each token has a unique index on the platform.",
+          description: "Each token has a unique index on the platform.",
           format: "uint64 (0 to 18,446,744,073,709,551,615)",
           examples: ["0 = USDC"],
         },
@@ -315,8 +313,7 @@ const precompiles: PrecompileConfig[] = [
         placeholder: "e.g. 0",
         type: "uint64",
         tooltip: {
-          description:
-            "Each token has a unique index on the platform.",
+          description: "Each token has a unique index on the platform.",
           format: "uint64 (0 to 18,446,744,073,709,551,615)",
           examples: ["0 = USDC"],
         },
@@ -388,8 +385,7 @@ const precompiles: PrecompileConfig[] = [
         placeholder: "0x...",
         type: "address",
         tooltip: {
-          description:
-            "The delegator whose staking summary you want to view.",
+          description: "The delegator whose staking summary you want to view.",
           format: "Ethereum address starting with 0x (42 hex characters)",
           examples: ["0x1234...abcd"],
         },

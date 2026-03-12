@@ -228,9 +228,7 @@ export const PrecompileCard = memo(function PrecompileCard({
                           {input.tooltip.examples &&
                             input.tooltip.examples.length > 0 && (
                               <div>
-                                <span className="font-semibold">
-                                  Examples:
-                                </span>
+                                <span className="font-semibold">Examples:</span>
                                 <ul className="mt-0.5 list-disc list-inside">
                                   {input.tooltip.examples.map(
                                     (example, index) => (
