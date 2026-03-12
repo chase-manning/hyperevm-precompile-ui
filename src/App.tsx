@@ -557,7 +557,8 @@ function App() {
                         rpcStatus === "connected" && "bg-green-500",
                         rpcStatus === "slow" && "bg-yellow-400",
                         rpcStatus === "unreachable" && "bg-destructive",
-                        rpcStatus === "checking" && "bg-yellow-400 animate-pulse"
+                        rpcStatus === "checking" &&
+                          "bg-yellow-400 animate-pulse"
                       )}
                       aria-label={`RPC status: ${rpcStatus}`}
                     />
