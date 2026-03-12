@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
@@ -44,8 +44,26 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
-  const [urlParams] = useState(getUrlParams);
-  const targetCardRef = useRef<HTMLDivElement | null>(null);
+  const [urlParams, setUrlParams] = useState(getUrlParams);
+
+  // Listen for popstate (browser back/forward) to update URL params
+  useEffect(() => {
+    const handler = () => setUrlParams(getUrlParams());
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, []);
+
+  // Ref callback to scroll to target card when it mounts (avoids race condition)
+  const targetCardRefCallback = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node && urlParams.fn) {
+        requestAnimationFrame(() => {
+          node.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      }
+    },
+    [urlParams.fn]
+  );
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
@@ -76,14 +94,6 @@ function App() {
     return precompiles;
   }, [urlParams.category]);
 
-  useEffect(() => {
-    if (urlParams.fn && targetCardRef.current) {
-      targetCardRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
-  }, [urlParams.fn]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -195,7 +205,7 @@ function App() {
                   publicClient={publicClient}
                   initialValues={isTarget ? urlParams.inputValues : undefined}
                   autoExecute={isTarget}
-                  targetRef={isTarget ? targetCardRef : undefined}
+                  targetRef={isTarget ? targetCardRefCallback : undefined}
                 />
               );
             })}
