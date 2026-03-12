@@ -9,6 +9,12 @@ import {
   PrecompileCard,
   type PrecompileConfig,
 } from "@/components/PrecompileCard";
+import {
+  safeGetItem,
+  safeSetItem,
+  safeRemoveItem,
+  STORAGE_KEYS,
+} from "@/lib/local-storage";
 
 const precompiles: PrecompileConfig[] = [
   {
@@ -281,11 +287,7 @@ const precompiles: PrecompileConfig[] = [
 ];
 
 function getStoredRpc(): string {
-  try {
-    return localStorage.getItem("customRpcUrl") || "";
-  } catch {
-    return "";
-  }
+  return safeGetItem(STORAGE_KEYS.CUSTOM_RPC_URL) || "";
 }
 
 function App() {
@@ -295,14 +297,10 @@ function App() {
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
-    try {
-      if (value.trim()) {
-        localStorage.setItem("customRpcUrl", value.trim());
-      } else {
-        localStorage.removeItem("customRpcUrl");
-      }
-    } catch {
-      // localStorage unavailable
+    if (value.trim()) {
+      safeSetItem(STORAGE_KEYS.CUSTOM_RPC_URL, value.trim());
+    } else {
+      safeRemoveItem(STORAGE_KEYS.CUSTOM_RPC_URL);
     }
   }, []);
 
