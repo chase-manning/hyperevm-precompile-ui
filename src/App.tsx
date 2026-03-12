@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { validateRpcUrl } from "@/lib/validation";
 import { PrecompileCard } from "@/components/PrecompileCard";
 import { RpcStatusIndicator } from "@/components/RpcStatusIndicator";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   safeGetItem,
   safeSetItem,
@@ -145,6 +146,7 @@ function App() {
   }, []);
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-background">
       <a
         href="#main-content"
@@ -352,11 +354,16 @@ function App() {
           {filteredPrecompiles.length > 0 ? (
             <div className="grid gap-4">
               {filteredPrecompiles.map((config) => (
-                <PrecompileCard
+                <ErrorBoundary
                   key={config.functionName}
-                  config={config}
-                  publicClient={publicClient}
-                />
+                  fallbackTitle={`${config.title} failed to render`}
+                  fallbackDescription="An error occurred while rendering this precompile card."
+                >
+                  <PrecompileCard
+                    config={config}
+                    publicClient={publicClient}
+                  />
+                </ErrorBoundary>
               ))}
             </div>
           ) : (
@@ -412,6 +419,7 @@ function App() {
         </footer>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }
 
