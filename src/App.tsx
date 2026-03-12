@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sun, Moon, Github, Settings, RotateCcw, Search } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
@@ -326,6 +327,43 @@ const precompiles: PrecompileConfig[] = [
   },
 ];
 
+const CATEGORIES = [
+  "All",
+  ...Array.from(new Set(precompiles.map((p) => p.badge))),
+] as const;
+
+function getInitialCategory(): string {
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get("category");
+  if (category && CATEGORIES.includes(category as (typeof CATEGORIES)[number])) {
+    return category;
+  }
+  return "All";
+}
+
+function getInitialSearch(): string {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("search") || "";
+}
+
+function updateUrlParams(search: string, category: string) {
+  const params = new URLSearchParams(window.location.search);
+  if (search) {
+    params.set("search", search);
+  } else {
+    params.delete("search");
+  }
+  if (category && category !== "All") {
+    params.set("category", category);
+  } else {
+    params.delete("category");
+  }
+  const newUrl = params.toString()
+    ? `${window.location.pathname}?${params.toString()}`
+    : window.location.pathname;
+  window.history.replaceState({}, "", newUrl);
+}
+
 function getStoredRpc(): string {
   return safeGetItem(STORAGE_KEYS.CUSTOM_RPC_URL) || "";
 }
@@ -334,6 +372,8 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
+  const [searchQuery, setSearchQuery] = useState(getInitialSearch);
+  const [activeCategory, setActiveCategory] = useState(getInitialCategory);
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
@@ -348,6 +388,39 @@ function App() {
     () => makePublicClient(customRpc.trim() || undefined),
     [customRpc]
   );
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+      updateUrlParams(value, activeCategory);
+    },
+    [activeCategory]
+  );
+
+  const handleCategoryChange = useCallback(
+    (category: string) => {
+      setActiveCategory(category);
+      updateUrlParams(searchQuery, category);
+    },
+    [searchQuery]
+  );
+
+  const filteredPrecompiles = useMemo(() => {
+    return precompiles.filter((config) => {
+      const matchesCategory =
+        activeCategory === "All" || config.badge === activeCategory;
+      if (!matchesCategory) return false;
+
+      if (!searchQuery.trim()) return true;
+
+      const query = searchQuery.toLowerCase().trim();
+      return (
+        config.title.toLowerCase().includes(query) ||
+        config.description.toLowerCase().includes(query) ||
+        config.functionName.toLowerCase().includes(query)
+      );
+    });
+  }, [searchQuery, activeCategory]);
 
   const isCustomRpc = customRpc.trim().length > 0;
 
@@ -458,15 +531,68 @@ function App() {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Available Reads
           </h2>
-          <div className="grid gap-4">
-            {precompiles.map((config) => (
-              <PrecompileCard
-                key={config.functionName}
-                config={config}
-                publicClient={publicClient}
+
+          <div className="mb-6 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search precompiles..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-9"
+                aria-label="Search precompiles"
               />
-            ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter by category">
+              {CATEGORIES.map((category) => {
+                const isActive = activeCategory === category;
+                return (
+                  <button
+                    key={category}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => handleCategoryChange(category)}
+                    className="cursor-pointer"
+                  >
+                    <Badge
+                      variant={isActive ? "default" : "secondary"}
+                      className={cn(
+                        "transition-colors",
+                        !isActive && "hover:bg-secondary/80"
+                      )}
+                    >
+                      {category}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              Showing {filteredPrecompiles.length} of {precompiles.length} precompiles
+            </p>
           </div>
+
+          {filteredPrecompiles.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredPrecompiles.map((config) => (
+                <PrecompileCard
+                  key={config.functionName}
+                  config={config}
+                  publicClient={publicClient}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-8 text-center">
+              <p className="text-muted-foreground">
+                No precompiles match your search
+                {activeCategory !== "All" ? ` in "${activeCategory}"` : ""}. Try
+                a different search term or category.
+              </p>
+            </div>
+          )}
         </section>
 
         <Separator className="mt-10 mb-6" />
