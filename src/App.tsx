@@ -1,12 +1,23 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sun, Moon, Github, Settings, RotateCcw, Search } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useRpcHealth } from "@/hooks/use-rpc-health";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
-import { PrecompileCard } from "@/components/PrecompileCard";
+import { validateRpcUrl } from "@/lib/validation";
+import {
+  PrecompileCard,
+  type PrecompileConfig,
+} from "@/components/PrecompileCard";
+import { RpcStatusIndicator } from "@/components/RpcStatusIndicator";
 import { precompiles } from "@/config/precompiles";
 import {
   safeGetItem,
@@ -58,6 +69,8 @@ function App() {
   const [search, setSearch] = useState(getInitialSearch);
   const [activeCategory, setActiveCategory] = useState(getInitialCategory);
 
+  const rpcError = useMemo(() => validateRpcUrl(customRpc), [customRpc]);
+
   const handleSearchChange = useCallback(
     (value: string) => {
       setSearch(value);
@@ -82,6 +95,11 @@ function App() {
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
+    const error = validateRpcUrl(value);
+    if (error) {
+      // Don't save invalid URLs to localStorage
+      return;
+    }
     if (value.trim()) {
       safeSetItem(STORAGE_KEYS.CUSTOM_RPC_URL, value.trim());
     } else {
@@ -90,8 +108,11 @@ function App() {
   }, []);
 
   const publicClient = useMemo(
-    () => makePublicClient(customRpc.trim() || undefined),
-    [customRpc]
+    () =>
+      makePublicClient(
+        !rpcError && customRpc.trim() ? customRpc.trim() : undefined
+      ),
+    [customRpc, rpcError]
   );
 
   const filteredPrecompiles = useMemo(() => {
@@ -112,7 +133,14 @@ function App() {
     });
   }, [search, activeCategory]);
 
-  const isCustomRpc = customRpc.trim().length > 0;
+  const isCustomRpc = customRpc.trim().length > 0 && !rpcError;
+
+  const {
+    status: rpcStatus,
+    blockNumber,
+    latencyMs,
+    recheck,
+  } = useRpcHealth(publicClient);
 
   return (
     <div className="min-h-screen bg-background">
@@ -129,39 +157,58 @@ function App() {
               Hyperliquid Precompile Explorer
             </h1>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowSettings((prev) => !prev)}
-                className={cn(
-                  "rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer",
-                  isCustomRpc && "text-primary border-primary/50"
-                )}
-                aria-label="Toggle settings"
-                aria-expanded={showSettings}
-                aria-controls="settings-panel"
-                title="Toggle settings"
-              >
-                <Settings className="h-4 w-4" />
-              </button>
-              <button
-                onClick={toggleTheme}
-                className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                aria-label={
-                  theme === "dark"
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setShowSettings((prev) => !prev)}
+                    className={cn(
+                      "relative rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer",
+                      isCustomRpc && "text-primary border-primary/50"
+                    )}
+                    aria-label="Toggle settings"
+                    aria-expanded={showSettings}
+                    aria-controls="settings-panel"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span
+                      className={cn(
+                        "absolute -top-0.5 -right-0.5 block h-2 w-2 rounded-full border border-background",
+                        rpcStatus === "connected" && "bg-green-500",
+                        rpcStatus === "slow" && "bg-yellow-400",
+                        rpcStatus === "unreachable" && "bg-destructive",
+                        rpcStatus === "checking" &&
+                          "bg-yellow-400 animate-pulse"
+                      )}
+                      aria-label={`RPC status: ${rpcStatus}`}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Toggle settings</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={toggleTheme}
+                    className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                    aria-label={
+                      theme === "dark"
+                        ? "Switch to light mode"
+                        : "Switch to dark mode"
+                    }
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {theme === "dark"
                     ? "Switch to light mode"
-                    : "Switch to dark mode"
-                }
-                title={
-                  theme === "dark"
-                    ? "Switch to light mode"
-                    : "Switch to dark mode"
-                }
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </button>
+                    : "Switch to dark mode"}
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
           <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
@@ -204,13 +251,55 @@ function App() {
                 id="custom-rpc"
                 placeholder={DEFAULT_RPC_URL}
                 value={customRpc}
+                aria-invalid={rpcError ? true : undefined}
+                aria-describedby={rpcError ? "rpc-error" : undefined}
                 onChange={(e) => handleRpcChange(e.target.value)}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {isCustomRpc
-                  ? `Using custom RPC: ${customRpc.trim()}`
-                  : `Using default RPC: ${DEFAULT_RPC_URL}`}
-              </p>
+              {rpcError ? (
+                <p
+                  id="rpc-error"
+                  className="mt-2 text-xs text-destructive"
+                  role="alert"
+                >
+                  {rpcError}
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {isCustomRpc
+                      ? `Using custom RPC: ${customRpc.trim()}`
+                      : `Using default RPC: ${DEFAULT_RPC_URL}`}
+                  </p>
+                  <RpcStatusIndicator
+                    status={rpcStatus}
+                    blockNumber={blockNumber}
+                    latencyMs={latencyMs}
+                  />
+                  {isCustomRpc && rpcStatus === "unreachable" && (
+                    <div
+                      className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                      role="alert"
+                    >
+                      <span>
+                        Custom RPC is unreachable. Check the URL or{" "}
+                        <button
+                          onClick={() => handleRpcChange("")}
+                          className="underline underline-offset-2 font-medium hover:text-destructive/80 transition-colors cursor-pointer"
+                        >
+                          revert to default
+                        </button>
+                        .
+                      </span>
+                      <button
+                        onClick={recheck}
+                        className="ml-auto shrink-0 underline underline-offset-2 font-medium hover:text-destructive/80 transition-colors cursor-pointer"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </header>
@@ -224,13 +313,13 @@ function App() {
 
           <div className="mb-6 space-y-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search precompiles..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-9"
-                aria-label="Search precompiles"
+                aria-label="Search precompiles by name or description"
               />
             </div>
 
@@ -265,7 +354,7 @@ function App() {
 
             <p className="text-xs text-muted-foreground" aria-live="polite">
               Showing {filteredPrecompiles.length} of {precompiles.length}{" "}
-              precompiles
+              precompile{precompiles.length !== 1 ? "s" : ""}
             </p>
           </div>
 
