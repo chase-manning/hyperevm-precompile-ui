@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getItem, setItem, STORAGE_KEYS } from "@/lib/local-storage";
 
 type Theme = "light" | "dark";
 
@@ -7,7 +8,7 @@ function isValidTheme(value: string | null): value is Theme {
 }
 
 function getInitialTheme(): Theme {
-  const stored = localStorage.getItem("theme");
+  const stored = getItem(STORAGE_KEYS.THEME);
   return isValidTheme(stored) ? stored : "light";
 }
 
@@ -21,7 +22,7 @@ export function useTheme() {
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("theme", theme);
+    setItem(STORAGE_KEYS.THEME, theme);
   }, [theme]);
 
   const toggleTheme = () => {
