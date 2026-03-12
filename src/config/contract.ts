@@ -268,9 +268,7 @@ export const CONTRACT_ABI = [
     type: "function",
   },
   {
-    inputs: [
-      { internalType: "uint64", name: "spotIndex", type: "uint64" },
-    ],
+    inputs: [{ internalType: "uint64", name: "spotIndex", type: "uint64" }],
     name: "getSpotInfo",
     outputs: [
       {
@@ -287,9 +285,7 @@ export const CONTRACT_ABI = [
     type: "function",
   },
   {
-    inputs: [
-      { internalType: "uint64", name: "spotIndex", type: "uint64" },
-    ],
+    inputs: [{ internalType: "uint64", name: "spotIndex", type: "uint64" }],
     name: "getSpotPx",
     outputs: [{ internalType: "uint64", name: "", type: "uint64" }],
     stateMutability: "view",
