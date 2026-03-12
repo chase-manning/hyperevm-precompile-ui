@@ -40,7 +40,10 @@ function validateAddress(value: string): string | null {
   return null;
 }
 
-function validateUint(value: string, type: "uint16" | "uint32" | "uint64"): string | null {
+function validateUint(
+  value: string,
+  type: "uint16" | "uint32" | "uint64"
+): string | null {
   const range = UINT_RANGES[type];
 
   // Check for non-numeric characters (allow leading/trailing whitespace already trimmed)

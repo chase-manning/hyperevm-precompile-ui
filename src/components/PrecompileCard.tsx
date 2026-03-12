@@ -76,10 +76,7 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
   const validationErrors = useMemo(() => {
     const errors: Record<string, string | null> = {};
     for (const input of config.inputs) {
-      errors[input.name] = validateInput(
-        values[input.name] || "",
-        input.type
-      );
+      errors[input.name] = validateInput(values[input.name] || "", input.type);
     }
     return errors;
   }, [values, config.inputs]);
