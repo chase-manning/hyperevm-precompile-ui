@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -6,10 +6,8 @@ import { Sun, Moon, Github, Settings, RotateCcw, Search } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
-import {
-  PrecompileCard,
-  type PrecompileConfig,
-} from "@/components/PrecompileCard";
+import { PrecompileCard } from "@/components/PrecompileCard";
+import { precompiles } from "@/config/precompiles";
 import {
   safeGetItem,
   safeSetItem,
@@ -17,328 +15,20 @@ import {
   STORAGE_KEYS,
 } from "@/lib/local-storage";
 
-const precompiles: PrecompileConfig[] = [
-  {
-    functionName: "getL1BlockNumber",
-    title: "L1 Block Number",
-    description:
-      "Fetch the latest HyperCore L1 block number as seen by the EVM at block construction time.",
-    badge: "System",
-    inputs: [],
-  },
-  {
-    functionName: "getCoreUserExists",
-    title: "Core User Exists",
-    description: "Check whether a given address exists as a user on HyperCore.",
-    badge: "User",
-    inputs: [
-      {
-        name: "user",
-        label: "User Address",
-        placeholder: "0x...",
-        type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). This is the HyperCore user address to check.",
-      },
-    ],
-  },
-  {
-    functionName: "getWithdrawable",
-    title: "Withdrawable",
-    description:
-      "Query the withdrawable balance for any user address on HyperCore.",
-    badge: "User",
-    inputs: [
-      {
-        name: "user",
-        label: "User Address",
-        placeholder: "0x...",
-        type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The user whose withdrawable balance you want to query.",
-      },
-    ],
-  },
-  {
-    functionName: "getOraclePx",
-    title: "Oracle Price",
-    description: "Query the oracle price for a perpetual asset by its index.",
-    badge: "Perps",
-    inputs: [
-      {
-        name: "perpIndex",
-        label: "Perp Index",
-        placeholder: "e.g. 0 for BTC, 1 for ETH",
-        type: "uint32",
-        tooltip:
-          "Perpetual asset index (uint32, 0 to 4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
-      },
-    ],
-  },
-  {
-    functionName: "getMarkPx",
-    title: "Mark Price",
-    description: "Query the mark price for a perpetual asset by its index.",
-    badge: "Perps",
-    inputs: [
-      {
-        name: "perpIndex",
-        label: "Perp Index",
-        placeholder: "e.g. 0 for BTC, 1 for ETH",
-        type: "uint32",
-        tooltip:
-          "Perpetual asset index (uint32, 0 to 4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
-      },
-    ],
-  },
-  {
-    functionName: "getBbo",
-    title: "Best Bid & Offer",
-    description: "Get the current best bid and ask for a perpetual asset.",
-    badge: "Perps",
-    inputs: [
-      {
-        name: "asset",
-        label: "Asset Index",
-        placeholder: "e.g. 0",
-        type: "uint64",
-        tooltip:
-          "Asset index for the perpetual market (uint64). Common values: 0 = BTC, 1 = ETH.",
-      },
-    ],
-  },
-  {
-    functionName: "getPerpAssetInfo",
-    title: "Perp Asset Info",
-    description:
-      "Look up metadata for a perpetual asset including coin name, decimals, max leverage, and margin table.",
-    badge: "Perps",
-    inputs: [
-      {
-        name: "perp",
-        label: "Perp Index",
-        placeholder: "e.g. 0",
-        type: "uint32",
-        tooltip:
-          "Perpetual asset index (uint32, 0 to 4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
-      },
-    ],
-  },
-  {
-    functionName: "getPosition",
-    title: "Position",
-    description:
-      "Query an open perpetual position for a given user and asset, including size, entry notional, leverage, and isolation mode.",
-    badge: "Perps",
-    inputs: [
-      {
-        name: "user",
-        label: "User Address",
-        placeholder: "0x...",
-        type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The trader whose position you want to query.",
-      },
-      {
-        name: "perp",
-        label: "Perp Index",
-        placeholder: "e.g. 0",
-        type: "uint16",
-        tooltip:
-          "Perpetual asset index (uint16, 0 to 65535). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
-      },
-    ],
-  },
-  {
-    functionName: "getAccountMarginSummary",
-    title: "Account Margin Summary",
-    description:
-      "Get the margin summary for a user on a given perp dex, including account value, margin used, notional position, and raw USD.",
-    badge: "Perps",
-    inputs: [
-      {
-        name: "perpDexIndex",
-        label: "Perp Dex Index",
-        placeholder: "e.g. 0",
-        type: "uint32",
-        tooltip:
-          "Perp DEX index (uint32, 0 to 4294967295). Use 0 for the default Hyperliquid perp DEX.",
-      },
-      {
-        name: "user",
-        label: "User Address",
-        placeholder: "0x...",
-        type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The user whose margin summary you want to view.",
-      },
-    ],
-  },
-  {
-    functionName: "getSpotBalance",
-    title: "Spot Balance",
-    description:
-      "Check a user's spot balance for a specific token, including total, on hold, and entry notional.",
-    badge: "Spot",
-    inputs: [
-      {
-        name: "user",
-        label: "User Address",
-        placeholder: "0x...",
-        type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The user whose spot balance you want to check.",
-      },
-      {
-        name: "token",
-        label: "Token Index",
-        placeholder: "e.g. 0",
-        type: "uint64",
-        tooltip:
-          "Token index on HyperCore (uint64). Use 0 for USDC. Other token indices can be looked up via Token Info.",
-      },
-    ],
-  },
-  {
-    functionName: "getSpotInfo",
-    title: "Spot Info",
-    description:
-      "Look up metadata for a spot market by index, including its name and the two token indices.",
-    badge: "Spot",
-    inputs: [
-      {
-        name: "spotIndex",
-        label: "Spot Index",
-        placeholder: "e.g. 0",
-        type: "uint64",
-        tooltip:
-          "Spot market index (uint64). Identifies a specific spot trading pair on Hyperliquid.",
-      },
-    ],
-  },
-  {
-    functionName: "getSpotPx",
-    title: "Spot Price",
-    description: "Query the current price for a spot market by its index.",
-    badge: "Spot",
-    inputs: [
-      {
-        name: "spotIndex",
-        label: "Spot Index",
-        placeholder: "e.g. 0",
-        type: "uint64",
-        tooltip:
-          "Spot market index (uint64). Identifies a specific spot trading pair on Hyperliquid.",
-      },
-    ],
-  },
-  {
-    functionName: "getTokenInfo",
-    title: "Token Info",
-    description:
-      "Get full metadata for a token including name, deployer, EVM contract, spot markets, and decimal configuration.",
-    badge: "Spot",
-    inputs: [
-      {
-        name: "token",
-        label: "Token Index",
-        placeholder: "e.g. 0",
-        type: "uint64",
-        tooltip:
-          "Token index on HyperCore (uint64). Use 0 for USDC. Each token has a unique index on the platform.",
-      },
-    ],
-  },
-  {
-    functionName: "getTokenSupply",
-    title: "Token Supply",
-    description:
-      "Query supply metrics for a token including max, total, circulating, future emissions, and non circulating holder balances.",
-    badge: "Spot",
-    inputs: [
-      {
-        name: "token",
-        label: "Token Index",
-        placeholder: "e.g. 0",
-        type: "uint64",
-        tooltip:
-          "Token index on HyperCore (uint64). Use 0 for USDC. Each token has a unique index on the platform.",
-      },
-    ],
-  },
-  {
-    functionName: "getUserVaultEquity",
-    title: "User Vault Equity",
-    description:
-      "Query a user's equity in a specific vault, along with the lock expiry timestamp.",
-    badge: "Vaults",
-    inputs: [
-      {
-        name: "user",
-        label: "User Address",
-        placeholder: "0x...",
-        type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The user whose vault equity you want to query.",
-      },
-      {
-        name: "vault",
-        label: "Vault Address",
-        placeholder: "0x...",
-        type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The vault contract address to query equity for.",
-      },
-    ],
-  },
-  {
-    functionName: "getDelegations",
-    title: "Delegations",
-    description:
-      "View all staking delegations for an address, including validator, amount, and lock expiry.",
-    badge: "Staking",
-    inputs: [
-      {
-        name: "user",
-        label: "User Address",
-        placeholder: "0x...",
-        type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The delegator whose staking delegations you want to view.",
-      },
-    ],
-  },
-  {
-    functionName: "getDelegatorSummary",
-    title: "Delegator Summary",
-    description:
-      "Get the staking summary for a delegator including total delegated, undelegated, pending withdrawals, and withdrawal count.",
-    badge: "Staking",
-    inputs: [
-      {
-        name: "user",
-        label: "User Address",
-        placeholder: "0x...",
-        type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The delegator whose staking summary you want to view.",
-      },
-    ],
-  },
-];
+const ALL_CATEGORY = "All";
 
 const CATEGORIES = [
-  "All",
+  ALL_CATEGORY,
   ...Array.from(new Set(precompiles.map((p) => p.badge))),
-] as const;
+];
 
 function getInitialCategory(): string {
   const params = new URLSearchParams(window.location.search);
   const category = params.get("category");
-  if (category && CATEGORIES.includes(category as (typeof CATEGORIES)[number])) {
+  if (category && CATEGORIES.includes(category)) {
     return category;
   }
-  return "All";
+  return ALL_CATEGORY;
 }
 
 function getInitialSearch(): string {
@@ -346,22 +36,15 @@ function getInitialSearch(): string {
   return params.get("search") || "";
 }
 
-function updateUrlParams(search: string, category: string) {
-  const params = new URLSearchParams(window.location.search);
-  if (search) {
-    params.set("search", search);
-  } else {
-    params.delete("search");
-  }
-  if (category && category !== "All") {
-    params.set("category", category);
-  } else {
-    params.delete("category");
-  }
-  const newUrl = params.toString()
-    ? `${window.location.pathname}?${params.toString()}`
+function syncFiltersToUrl(search: string, category: string) {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  if (category && category !== ALL_CATEGORY) params.set("category", category);
+  const qs = params.toString();
+  const newUrl = qs
+    ? `${window.location.pathname}?${qs}`
     : window.location.pathname;
-  window.history.replaceState({}, "", newUrl);
+  window.history.replaceState(null, "", newUrl);
 }
 
 function getStoredRpc(): string {
@@ -372,8 +55,26 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
-  const [searchQuery, setSearchQuery] = useState(getInitialSearch);
+  const [search, setSearch] = useState(getInitialSearch);
   const [activeCategory, setActiveCategory] = useState(getInitialCategory);
+
+  // Use refs to avoid stale closures when both filters are cleared simultaneously
+  const searchRef = useRef(search);
+  searchRef.current = search;
+  const categoryRef = useRef(activeCategory);
+  categoryRef.current = activeCategory;
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    searchRef.current = value;
+    syncFiltersToUrl(value, categoryRef.current);
+  }, []);
+
+  const handleCategoryChange = useCallback((category: string) => {
+    setActiveCategory(category);
+    categoryRef.current = category;
+    syncFiltersToUrl(searchRef.current, category);
+  }, []);
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
@@ -389,38 +90,23 @@ function App() {
     [customRpc]
   );
 
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchQuery(value);
-      updateUrlParams(value, activeCategory);
-    },
-    [activeCategory]
-  );
-
-  const handleCategoryChange = useCallback(
-    (category: string) => {
-      setActiveCategory(category);
-      updateUrlParams(searchQuery, category);
-    },
-    [searchQuery]
-  );
-
   const filteredPrecompiles = useMemo(() => {
     return precompiles.filter((config) => {
       const matchesCategory =
-        activeCategory === "All" || config.badge === activeCategory;
+        activeCategory === ALL_CATEGORY || config.badge === activeCategory;
       if (!matchesCategory) return false;
 
-      if (!searchQuery.trim()) return true;
+      if (!search.trim()) return true;
 
-      const query = searchQuery.toLowerCase().trim();
+      const query = search.toLowerCase().trim();
       return (
         config.title.toLowerCase().includes(query) ||
         config.description.toLowerCase().includes(query) ||
-        config.functionName.toLowerCase().includes(query)
+        config.functionName.toLowerCase().includes(query) ||
+        config.badge.toLowerCase().includes(query)
       );
     });
-  }, [searchQuery, activeCategory]);
+  }, [search, activeCategory]);
 
   const isCustomRpc = customRpc.trim().length > 0;
 
@@ -537,14 +223,18 @@ function App() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search precompiles..."
-                value={searchQuery}
+                value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-9"
                 aria-label="Search precompiles"
               />
             </div>
 
-            <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter by category">
+            <div
+              className="flex flex-wrap gap-2"
+              role="tablist"
+              aria-label="Filter by category"
+            >
               {CATEGORIES.map((category) => {
                 const isActive = activeCategory === category;
                 return (
@@ -570,7 +260,8 @@ function App() {
             </div>
 
             <p className="text-xs text-muted-foreground" aria-live="polite">
-              Showing {filteredPrecompiles.length} of {precompiles.length} precompiles
+              Showing {filteredPrecompiles.length} of {precompiles.length}{" "}
+              precompiles
             </p>
           </div>
 
@@ -586,11 +277,18 @@ function App() {
             </div>
           ) : (
             <div className="rounded-lg border border-border bg-card p-8 text-center">
-              <p className="text-muted-foreground">
-                No precompiles match your search
-                {activeCategory !== "All" ? ` in "${activeCategory}"` : ""}. Try
-                a different search term or category.
+              <p className="text-muted-foreground mb-2">
+                No precompiles match your filters.
               </p>
+              <button
+                onClick={() => {
+                  handleSearchChange("");
+                  handleCategoryChange(ALL_CATEGORY);
+                }}
+                className="text-sm text-primary hover:underline cursor-pointer"
+              >
+                Clear filters
+              </button>
             </div>
           )}
         </section>
