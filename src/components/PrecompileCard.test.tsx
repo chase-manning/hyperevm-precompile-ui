@@ -20,9 +20,7 @@ vi.mock("@/hooks/use-auto-refresh", () => ({
   ],
 }));
 
-function createMockClient(
-  returnValue: unknown = BigInt(42)
-): PublicClient {
+function createMockClient(returnValue: unknown = BigInt(42)): PublicClient {
   return {
     readContract: vi.fn().mockResolvedValue(returnValue),
   } as unknown as PublicClient;
@@ -142,9 +140,7 @@ describe("PrecompileCard", () => {
       bid: BigInt(100),
       ask: BigInt(200),
     });
-    render(
-      <PrecompileCard config={uint64InputConfig} publicClient={client} />
-    );
+    render(<PrecompileCard config={uint64InputConfig} publicClient={client} />);
 
     const input = screen.getByLabelText("Asset Index");
     fireEvent.change(input, { target: { value: "5" } });
@@ -165,7 +161,9 @@ describe("PrecompileCard", () => {
 
   it("displays error when contract call fails", async () => {
     const client = {
-      readContract: vi.fn().mockRejectedValue(new Error("Contract call reverted with something")),
+      readContract: vi
+        .fn()
+        .mockRejectedValue(new Error("Contract call reverted with something")),
     } as unknown as PublicClient;
 
     render(<PrecompileCard config={noInputConfig} publicClient={client} />);
@@ -183,7 +181,9 @@ describe("PrecompileCard", () => {
       readContract: vi
         .fn()
         .mockRejectedValue(
-          new Error("something PrecompileLib__OraclePxPrecompileFailed something")
+          new Error(
+            "something PrecompileLib__OraclePxPrecompileFailed something"
+          )
         ),
     } as unknown as PublicClient;
 
@@ -191,9 +191,7 @@ describe("PrecompileCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Query" }));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("OraclePxPrecompileFailed")
-      ).toBeInTheDocument();
+      expect(screen.getByText("OraclePxPrecompileFailed")).toBeInTheDocument();
     });
   });
 
