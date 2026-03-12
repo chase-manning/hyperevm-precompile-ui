@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { CopyButton } from "@/components/CopyButton";
 
 function isPrimitive(value: unknown): value is bigint | boolean | number | string {
   return (
@@ -30,8 +31,14 @@ export const ResultDisplay = memo(function ResultDisplay({ data, depth = 0 }: Re
   if (data === null || data === undefined) return null;
 
   if (isPrimitive(data)) {
+    const formatted = formatValue(data);
     return (
-      <span className="font-mono text-sm break-all">{formatValue(data)}</span>
+      <span className="inline-flex items-center gap-0.5 group/value">
+        <span className="font-mono text-sm break-all">{formatted}</span>
+        <span className="opacity-0 group-hover/value:opacity-100 transition-opacity">
+          <CopyButton value={formatted} size="icon-xs" />
+        </span>
+      </span>
     );
   }
 

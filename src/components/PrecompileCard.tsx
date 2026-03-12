@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResultDisplay } from "@/components/ResultDisplay";
+import { CopyButton } from "@/components/CopyButton";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
@@ -33,6 +34,14 @@ export interface PrecompileConfig {
   description: string;
   badge: string;
   inputs: InputConfig[];
+}
+
+function serializeResult(data: unknown): string {
+  return JSON.stringify(
+    data,
+    (_key, value) => (typeof value === "bigint" ? value.toString() : value),
+    2
+  );
 }
 
 function parseArg(value: string, type: InputConfig["type"]): unknown {
@@ -148,7 +157,10 @@ export const PrecompileCard = memo(function PrecompileCard({ config, publicClien
           )}
 
           {result !== null && !error && hasQueried && (
-            <div className="rounded-md bg-muted/50 border border-border p-3">
+            <div className="rounded-md bg-muted/50 border border-border p-3 relative group/result">
+              <div className="absolute top-1.5 right-1.5 opacity-0 group-hover/result:opacity-100 transition-opacity">
+                <CopyButton value={serializeResult(result)} size="icon-xs" />
+              </div>
               <ResultDisplay data={result} />
             </div>
           )}
