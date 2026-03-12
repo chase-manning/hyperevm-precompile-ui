@@ -38,4 +38,16 @@ describe("makePublicClient", () => {
     expect(client).toBeDefined();
     expect(client.chain!.id).toBe(999);
   });
+
+  it("uses default RPC when empty string is provided", () => {
+    const client = makePublicClient("");
+    expect(client).toBeDefined();
+    expect(client.chain!.id).toBe(999);
+  });
+
+  it("uses default RPC when undefined is provided", () => {
+    const client = makePublicClient(undefined);
+    expect(client).toBeDefined();
+    expect(client.chain!.id).toBe(999);
+  });
 });

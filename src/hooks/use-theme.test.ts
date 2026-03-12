@@ -13,10 +13,21 @@ describe("useTheme", () => {
     expect(result.current.theme).toBe("light");
   });
 
+  it("does not add dark class for light theme", () => {
+    renderHook(() => useTheme());
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+  });
+
   it("reads stored theme from localStorage", () => {
     localStorage.setItem("theme", "dark");
     const { result } = renderHook(() => useTheme());
     expect(result.current.theme).toBe("dark");
+  });
+
+  it("adds dark class when theme is dark", () => {
+    localStorage.setItem("theme", "dark");
+    renderHook(() => useTheme());
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 
   it("defaults to light when localStorage has invalid value", () => {
@@ -29,6 +40,8 @@ describe("useTheme", () => {
     const { result } = renderHook(() => useTheme());
     act(() => result.current.toggleTheme());
     expect(result.current.theme).toBe("dark");
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(localStorage.getItem("theme")).toBe("dark");
   });
 
   it("toggles from dark to light", () => {
@@ -36,6 +49,8 @@ describe("useTheme", () => {
     const { result } = renderHook(() => useTheme());
     act(() => result.current.toggleTheme());
     expect(result.current.theme).toBe("light");
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+    expect(localStorage.getItem("theme")).toBe("light");
   });
 
   it("adds dark class to documentElement for dark theme", () => {
@@ -55,5 +70,10 @@ describe("useTheme", () => {
     const { result } = renderHook(() => useTheme());
     act(() => result.current.toggleTheme());
     expect(localStorage.getItem("theme")).toBe("dark");
+  });
+
+  it("persists theme to localStorage", () => {
+    renderHook(() => useTheme());
+    expect(localStorage.getItem("theme")).toBe("light");
   });
 });

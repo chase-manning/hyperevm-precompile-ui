@@ -64,15 +64,41 @@ describe("parseArg", () => {
     );
   });
 
+  it("allows uint16 at max boundary", () => {
+    expect(parseArg("65535", "uint16")).toBe(65535);
+  });
+
   it("throws for uint32 values exceeding max", () => {
     expect(() => parseArg("4294967296", "uint32")).toThrow(
       "Value exceeds maximum for uint32"
     );
   });
 
+  it("allows uint32 at max boundary", () => {
+    expect(parseArg("4294967295", "uint32")).toBe(4294967295);
+  });
+
   it("throws for uint64 values exceeding max", () => {
     expect(() => parseArg("18446744073709551616", "uint64")).toThrow(
       "Value exceeds maximum for uint64"
+    );
+  });
+
+  it("handles zero for uint types", () => {
+    expect(parseArg("0", "uint16")).toBe(0);
+    expect(parseArg("0", "uint32")).toBe(0);
+    expect(parseArg("0", "uint64")).toBe(BigInt(0));
+  });
+
+  it("throws on empty string for uint types", () => {
+    expect(() => parseArg("", "uint32")).toThrow(
+      "Value must be a non-negative integer"
+    );
+  });
+
+  it("throws on whitespace-only string for uint types", () => {
+    expect(() => parseArg("   ", "uint32")).toThrow(
+      "Value must be a non-negative integer"
     );
   });
 
@@ -135,6 +161,17 @@ describe("PrecompileCard", () => {
     expect(screen.getByPlaceholderText("0x...")).toBeInTheDocument();
   });
 
+  it("enables Query button when no inputs required", () => {
+    render(
+      <PrecompileCard
+        config={noInputConfig}
+        publicClient={makeMockClient()}
+      />
+    );
+    const btn = screen.getByRole("button", { name: "Query" });
+    expect(btn).not.toBeDisabled();
+  });
+
   it("disables Query button when required inputs are empty", () => {
     render(
       <PrecompileCard
@@ -158,13 +195,6 @@ describe("PrecompileCard", () => {
     expect(screen.getByRole("button", { name: "Query" })).toBeEnabled();
   });
 
-  it("enables Query button immediately for no-input configs", () => {
-    render(
-      <PrecompileCard config={noInputConfig} publicClient={makeMockClient()} />
-    );
-    expect(screen.getByRole("button", { name: "Query" })).toBeEnabled();
-  });
-
   it("displays result after successful query", async () => {
     const client = makeMockClient(BigInt(12345));
     render(<PrecompileCard config={noInputConfig} publicClient={client} />);
@@ -174,6 +204,21 @@ describe("PrecompileCard", () => {
     await waitFor(() => {
       expect(screen.getByText("12345")).toBeInTheDocument();
     });
+  });
+
+  it("calls readContract and displays result on query", async () => {
+    const client = makeMockClient(BigInt(99999));
+    render(
+      <PrecompileCard config={noInputConfig} publicClient={client} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Query" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("99999")).toBeInTheDocument();
+    });
+
+    expect(client.readContract).toHaveBeenCalledTimes(1);
   });
 
   it("displays error on contract call failure", async () => {
@@ -208,6 +253,24 @@ describe("PrecompileCard", () => {
     });
   });
 
+  it("truncates long error messages", async () => {
+    const longMsg = "x".repeat(300);
+    const client = {
+      readContract: vi.fn().mockRejectedValue(new Error(longMsg)),
+    } as never;
+
+    render(
+      <PrecompileCard config={noInputConfig} publicClient={client} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Query" }));
+
+    await waitFor(() => {
+      const errorEl = screen.getByText(/\.\.\.$/);
+      expect(errorEl.textContent!.length).toBeLessThanOrEqual(203);
+    });
+  });
+
   it("shows generic message for non-Error throws", async () => {
     const client = {
       readContract: vi.fn().mockRejectedValue("string error"),
@@ -218,6 +281,32 @@ describe("PrecompileCard", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Query failed")).toBeInTheDocument();
+    });
+  });
+
+  it("shows loading state while querying", async () => {
+    let resolvePromise: (value: unknown) => void;
+    const client = {
+      readContract: vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolvePromise = resolve;
+          })
+      ),
+    } as never;
+
+    render(
+      <PrecompileCard config={noInputConfig} publicClient={client} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Query" }));
+
+    expect(screen.getByText("Querying...")).toBeInTheDocument();
+
+    resolvePromise!(BigInt(1));
+
+    await waitFor(() => {
+      expect(screen.getByText("Query")).toBeInTheDocument();
     });
   });
 });

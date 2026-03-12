@@ -100,6 +100,11 @@ describe("ResultDisplay", () => {
     expect(screen.getByText("[1, 2, 3]")).toBeInTheDocument();
   });
 
+  it("renders mixed primitive array", () => {
+    render(<ResultDisplay data={["hello", 42, true]} />);
+    expect(screen.getByText("[hello, 42, true]")).toBeInTheDocument();
+  });
+
   it("renders object with named keys", () => {
     render(
       <ResultDisplay
@@ -158,5 +163,29 @@ describe("ResultDisplay", () => {
   it("returns null for object with only numeric keys", () => {
     const { container } = render(<ResultDisplay data={{ 0: "a", 1: "b" }} />);
     expect(container.innerHTML).toBe("");
+  });
+
+  it("renders object with array value", () => {
+    const data = {
+      spots: [BigInt(1), BigInt(2)],
+    };
+    render(<ResultDisplay data={data} />);
+    expect(screen.getByText("spots")).toBeInTheDocument();
+    expect(screen.getByText("[1, 2]")).toBeInTheDocument();
+  });
+
+  it("renders complex nested values recursively", () => {
+    const data = {
+      summary: {
+        accountValue: BigInt(1000),
+        marginUsed: BigInt(500),
+      },
+    };
+    render(<ResultDisplay data={data} />);
+    expect(screen.getByText("summary")).toBeInTheDocument();
+    expect(screen.getByText("accountValue")).toBeInTheDocument();
+    expect(screen.getByText("1000")).toBeInTheDocument();
+    expect(screen.getByText("marginUsed")).toBeInTheDocument();
+    expect(screen.getByText("500")).toBeInTheDocument();
   });
 });
