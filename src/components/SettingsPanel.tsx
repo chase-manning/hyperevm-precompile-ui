@@ -1,4 +1,5 @@
 import { RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DEFAULT_RPC_URL } from "@/config/client";
 
@@ -23,13 +24,15 @@ export function SettingsPanel({
           Custom RPC URL
         </label>
         {isCustomRpc && (
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={() => onRpcChange("")}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <RotateCcw className="h-3 w-3" />
             Reset to default
-          </button>
+          </Button>
         )}
       </div>
       <Input
