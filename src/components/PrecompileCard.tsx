@@ -42,11 +42,30 @@ export interface PrecompileConfig {
   inputs: InputConfig[];
 }
 
+const UINT_MAX: Record<string, bigint> = {
+  uint16: BigInt(2 ** 16 - 1),
+  uint32: BigInt(2 ** 32 - 1),
+  uint64: (BigInt(1) << BigInt(64)) - BigInt(1),
+};
+
 function parseArg(value: string, type: InputConfig["type"]): unknown {
   const trimmed = value.trim();
   if (type === "address") return trimmed as `0x${string}`;
-  if (type === "uint64") return BigInt(trimmed);
-  return Number(trimmed);
+
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error(`Invalid ${type} value: expected a non-negative integer.`);
+  }
+
+  const n = BigInt(trimmed);
+  const max = UINT_MAX[type];
+  if (max !== undefined && n > max) {
+    throw new Error(
+      `Value exceeds maximum for ${type} (max ${max.toString()}).`
+    );
+  }
+
+  if (type === "uint64") return n;
+  return Number(n);
 }
 
 interface PrecompileCardProps {
