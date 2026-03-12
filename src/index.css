@@ -122,3 +122,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes auto-refresh-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.auto-refresh-pulse {
+  animation: auto-refresh-pulse 2s ease-in-out infinite;
+}
