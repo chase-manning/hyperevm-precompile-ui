@@ -1,5 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
@@ -377,39 +382,47 @@ function App() {
               Hyperliquid Precompile Explorer
             </h1>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowSettings((prev) => !prev)}
-                className={cn(
-                  "rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer",
-                  isCustomRpc && "text-primary border-primary/50"
-                )}
-                aria-label="Toggle settings"
-                aria-expanded={showSettings}
-                aria-controls="settings-panel"
-                title="Toggle settings"
-              >
-                <Settings className="h-4 w-4" />
-              </button>
-              <button
-                onClick={toggleTheme}
-                className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                aria-label={
-                  theme === "dark"
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setShowSettings((prev) => !prev)}
+                    className={cn(
+                      "rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer",
+                      isCustomRpc && "text-primary border-primary/50"
+                    )}
+                    aria-label="Toggle settings"
+                    aria-expanded={showSettings}
+                    aria-controls="settings-panel"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Toggle settings</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={toggleTheme}
+                    className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                    aria-label={
+                      theme === "dark"
+                        ? "Switch to light mode"
+                        : "Switch to dark mode"
+                    }
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {theme === "dark"
                     ? "Switch to light mode"
-                    : "Switch to dark mode"
-                }
-                title={
-                  theme === "dark"
-                    ? "Switch to light mode"
-                    : "Switch to dark mode"
-                }
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </button>
+                    : "Switch to dark mode"}
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
           <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
