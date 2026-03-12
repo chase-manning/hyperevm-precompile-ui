@@ -1,42 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { PrecompileCard } from "./PrecompileCard";
+import { PrecompileCard, parseArg } from "./PrecompileCard";
 import type { PrecompileConfig } from "./PrecompileCard";
 import type { PublicClient } from "viem";
 
-// parseArg is not exported, so we replicate it for direct unit tests
 describe("parseArg", () => {
-  const UINT_MAX: Record<string, bigint> = {
-    uint16: BigInt(2 ** 16 - 1),
-    uint32: BigInt(2 ** 32 - 1),
-    uint64: (BigInt(1) << BigInt(64)) - BigInt(1),
-  };
-
-  function parseArg(
-    value: string,
-    type: "address" | "uint16" | "uint32" | "uint64"
-  ): unknown {
-    const trimmed = value.trim();
-    if (type === "address") return trimmed as `0x${string}`;
-
-    if (!/^\d+$/.test(trimmed)) {
-      throw new Error(
-        `Invalid ${type} value: expected a non-negative integer.`
-      );
-    }
-
-    const n = BigInt(trimmed);
-    const max = UINT_MAX[type];
-    if (max !== undefined && n > max) {
-      throw new Error(
-        `Value exceeds maximum for ${type} (max ${max.toString()}).`
-      );
-    }
-
-    if (type === "uint64") return n;
-    return Number(n);
-  }
-
   it("returns trimmed address for address type", () => {
     expect(parseArg("  0xAbC123  ", "address")).toBe("0xAbC123");
   });
