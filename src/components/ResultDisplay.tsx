@@ -1,3 +1,5 @@
+import { CopyButton } from "@/components/CopyButton";
+
 function formatValue(value: unknown): string {
   if (typeof value === "bigint") return value.toString();
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -8,6 +10,18 @@ function formatValue(value: unknown): string {
 
 function isNamedKey(key: string): boolean {
   return isNaN(Number(key));
+}
+
+function InlineCopyValue({ value }: { value: string }) {
+  return (
+    <span className="group/copy inline-flex items-center gap-0.5">
+      <span className="font-mono text-sm break-all">{value}</span>
+      <CopyButton
+        value={value}
+        className="opacity-0 group-hover/copy:opacity-100 transition-opacity"
+      />
+    </span>
+  );
 }
 
 interface ResultDisplayProps {
@@ -24,9 +38,7 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
     typeof data === "number" ||
     typeof data === "string"
   ) {
-    return (
-      <span className="font-mono text-sm break-all">{formatValue(data)}</span>
-    );
+    return <InlineCopyValue value={formatValue(data)} />;
   }
 
   if (Array.isArray(data)) {
@@ -43,11 +55,8 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
     );
 
     if (isPrimitiveArray) {
-      return (
-        <span className="font-mono text-sm break-all">
-          [{data.map(formatValue).join(", ")}]
-        </span>
-      );
+      const formatted = `[${data.map(formatValue).join(", ")}]`;
+      return <InlineCopyValue value={formatted} />;
     }
 
     return (

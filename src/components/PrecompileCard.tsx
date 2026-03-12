@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResultDisplay } from "@/components/ResultDisplay";
+import { CopyButton } from "@/components/CopyButton";
+import { serializeResult } from "@/lib/utils";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
@@ -148,8 +150,16 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
           )}
 
           {result !== null && !error && hasQueried && (
-            <div className="rounded-md bg-muted/50 border border-border p-3">
-              <ResultDisplay data={result} />
+            <div className="relative rounded-md bg-muted/50 border border-border p-3">
+              <div className="absolute top-1.5 right-1.5">
+                <CopyButton
+                  value={serializeResult(result)}
+                  size="icon-sm"
+                />
+              </div>
+              <div className="pr-8">
+                <ResultDisplay data={result} />
+              </div>
             </div>
           )}
         </div>
