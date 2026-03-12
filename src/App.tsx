@@ -8,6 +8,20 @@ import { PrecompileCard } from "@/components/PrecompileCard";
 import { precompiles } from "@/config/precompiles";
 import { cn } from "@/lib/utils";
 
+function validateRpcUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (trimmed === "") return null;
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return "RPC URL must start with http:// or https://";
+  }
+  try {
+    new URL(trimmed);
+  } catch {
+    return "RPC URL is not a valid URL";
+  }
+  return null;
+}
+
 function getStoredRpc(): string {
   try {
     return localStorage.getItem("customRpcUrl") || "";
@@ -21,12 +35,16 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
 
+  const rpcError = useMemo(() => validateRpcUrl(customRpc), [customRpc]);
+
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
+    const trimmed = value.trim();
+    const error = validateRpcUrl(value);
     try {
-      if (value.trim()) {
-        localStorage.setItem("customRpcUrl", value.trim());
-      } else {
+      if (trimmed && !error) {
+        localStorage.setItem("customRpcUrl", trimmed);
+      } else if (!trimmed) {
         localStorage.removeItem("customRpcUrl");
       }
     } catch {
@@ -111,12 +129,17 @@ function App() {
                 placeholder={DEFAULT_RPC_URL}
                 value={customRpc}
                 onChange={(e) => handleRpcChange(e.target.value)}
+                aria-invalid={!!rpcError}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {isCustomRpc
-                  ? `Using custom RPC: ${customRpc.trim()}`
-                  : `Using default RPC: ${DEFAULT_RPC_URL}`}
-              </p>
+              {rpcError ? (
+                <p className="mt-2 text-xs text-destructive">{rpcError}</p>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {isCustomRpc
+                    ? `Using custom RPC: ${customRpc.trim()}`
+                    : `Using default RPC: ${DEFAULT_RPC_URL}`}
+                </p>
+              )}
             </div>
           )}
         </header>

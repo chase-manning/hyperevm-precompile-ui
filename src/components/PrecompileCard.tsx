@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -42,11 +42,55 @@ export interface PrecompileConfig {
   inputs: InputConfig[];
 }
 
-const UINT_MAX: Record<string, bigint> = {
-  uint16: BigInt(2 ** 16 - 1),
-  uint32: BigInt(2 ** 32 - 1),
-  uint64: (BigInt(1) << BigInt(64)) - BigInt(1),
+const UINT_RANGES: Record<string, { min: bigint; max: bigint }> = {
+  uint16: { min: 0n, max: 65535n },
+  uint32: { min: 0n, max: 4294967295n },
+  uint64: { min: 0n, max: 18446744073709551615n },
 };
+
+function validateInput(
+  value: string,
+  type: InputConfig["type"]
+): string | null {
+  const trimmed = value.trim();
+
+  if (trimmed === "") return null; // Empty is not an error (handled by allInputsFilled)
+
+  if (type === "address") {
+    if (!/^0x/i.test(trimmed)) {
+      return "Address must start with 0x";
+    }
+    if (trimmed.length !== 42) {
+      return "Address must be 42 characters long";
+    }
+    if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
+      return "Address contains invalid characters";
+    }
+    return null;
+  }
+
+  // Numeric types: uint16, uint32, uint64
+  const range = UINT_RANGES[type];
+  if (!range) return null;
+
+  if (!/^-?\d+$/.test(trimmed)) {
+    return `${type} must be a non-negative integer`;
+  }
+
+  try {
+    const num = BigInt(trimmed);
+    if (num < range.min) {
+      return `${type} cannot be negative`;
+    }
+    if (num > range.max) {
+      return `${type} max value is ${range.max.toString()}`;
+    }
+  } catch {
+    return `Invalid ${type} value`;
+  }
+
+  return null;
+}
 
 export function parseArg(value: string, type: InputConfig["type"]): unknown {
   const trimmed = value.trim();
@@ -57,7 +101,7 @@ export function parseArg(value: string, type: InputConfig["type"]): unknown {
   }
 
   const n = BigInt(trimmed);
-  const max = UINT_MAX[type];
+  const max = UINT_RANGES[type]?.max;
   if (max !== undefined && n > max) {
     throw new Error(
       `Value exceeds maximum for ${type} (max ${max.toString()}).`
@@ -79,6 +123,21 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
+
+  const validationErrors = useMemo(() => {
+    const errors: Record<string, string | null> = {};
+    for (const input of config.inputs) {
+      errors[input.name] = validateInput(
+        values[input.name] || "",
+        input.type
+      );
+    }
+    return errors;
+  }, [values, config.inputs]);
+
+  const hasValidationErrors = Object.values(validationErrors).some(
+    (e) => e !== null
+  );
 
   const handleQuery = async () => {
     setLoading(true);
@@ -121,7 +180,14 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
   const allInputsFilled = config.inputs.every(
     (input) => (values[input.name] || "").trim() !== ""
   );
-  const canQuery = config.inputs.length === 0 || allInputsFilled;
+  const canQuery =
+    (config.inputs.length === 0 || allInputsFilled) && !hasValidationErrors;
+
+  const disabledReason = hasValidationErrors
+    ? "Fix validation errors before querying"
+    : !allInputsFilled && config.inputs.length > 0
+      ? "Fill in all fields before querying"
+      : null;
 
   return (
     <Card>
@@ -134,56 +200,70 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {config.inputs.map((input) => (
-            <div key={input.name} className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor={`${config.functionName}-${input.name}`}>
-                  {input.label}
-                </Label>
-                {input.tooltip && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label={`Info about ${input.label}`}
-                      >
-                        <Info className="size-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      {input.tooltip}
-                    </TooltipContent>
-                  </Tooltip>
+          {config.inputs.map((input) => {
+            const validationError = validationErrors[input.name];
+            return (
+              <div key={input.name} className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor={`${config.functionName}-${input.name}`}>
+                    {input.label}
+                  </Label>
+                  {input.tooltip && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={`Info about ${input.label}`}
+                        >
+                          <Info className="size-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {input.tooltip}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+                <Input
+                  id={`${config.functionName}-${input.name}`}
+                  placeholder={input.placeholder}
+                  value={values[input.name] || ""}
+                  aria-invalid={!!validationError}
+                  onChange={(e) =>
+                    setValues((prev) => ({
+                      ...prev,
+                      [input.name]: e.target.value,
+                    }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && canQuery && !loading) {
+                      handleQuery();
+                    }
+                  }}
+                />
+                {validationError && (
+                  <p className="text-xs text-destructive">{validationError}</p>
                 )}
               </div>
-              <Input
-                id={`${config.functionName}-${input.name}`}
-                placeholder={input.placeholder}
-                value={values[input.name] || ""}
-                onChange={(e) =>
-                  setValues((prev) => ({
-                    ...prev,
-                    [input.name]: e.target.value,
-                  }))
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && canQuery && !loading) {
-                    handleQuery();
-                  }
-                }}
-              />
-            </div>
-          ))}
+            );
+          })}
 
-          <Button
-            onClick={handleQuery}
-            disabled={loading || !canQuery}
-            className="w-full"
-            size="sm"
-          >
-            {loading ? "Querying..." : "Query"}
-          </Button>
+          <div className="relative group">
+            <Button
+              onClick={handleQuery}
+              disabled={loading || !canQuery}
+              className="w-full"
+              size="sm"
+            >
+              {loading ? "Querying..." : "Query"}
+            </Button>
+            {disabledReason && !loading && (
+              <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-popover border border-border px-2 py-1 text-xs text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+                {disabledReason}
+              </span>
+            )}
+          </div>
 
           {error && (
             <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
