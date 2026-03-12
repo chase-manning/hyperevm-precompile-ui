@@ -33,12 +33,18 @@ type ContractFunctionName = ExtractAbiFunctionNames<
   "view"
 >;
 
+export interface InputTooltip {
+  description: string;
+  format: string;
+  examples?: string[];
+}
+
 export interface InputConfig {
   name: string;
   label: string;
   placeholder: string;
   type: "address" | "uint16" | "uint32" | "uint64";
-  tooltip?: string;
+  tooltip?: InputTooltip;
 }
 
 export interface PrecompileConfig {
@@ -212,7 +218,30 @@ export const PrecompileCard = memo(function PrecompileCard({
                           <Info className="h-3.5 w-3.5" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent>{input.tooltip}</TooltipContent>
+                      <TooltipContent className="max-w-sm">
+                        <div className="space-y-1.5 text-left">
+                          <p>{input.tooltip.description}</p>
+                          <p>
+                            <span className="font-semibold">Format:</span>{" "}
+                            {input.tooltip.format}
+                          </p>
+                          {input.tooltip.examples &&
+                            input.tooltip.examples.length > 0 && (
+                              <div>
+                                <span className="font-semibold">
+                                  Examples:
+                                </span>
+                                <ul className="mt-0.5 list-disc list-inside">
+                                  {input.tooltip.examples.map(
+                                    (example, index) => (
+                                      <li key={index}>{example}</li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+                        </div>
+                      </TooltipContent>
                     </Tooltip>
                   )}
                 </div>
