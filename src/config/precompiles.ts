@@ -1,39 +1,4 @@
-import type { InputConfig, PrecompileConfig } from "@/components/PrecompileCard";
-
-const USER_ADDRESS_INPUT: InputConfig = {
-  name: "user",
-  label: "User Address",
-  placeholder: "0x...",
-  type: "address",
-  tooltip: "Ethereum address starting with 0x (42 characters total).",
-};
-
-const PERP_INDEX_INPUT: InputConfig = {
-  name: "perpIndex",
-  label: "Perp Index",
-  placeholder: "e.g. 0",
-  type: "uint32",
-  tooltip:
-    "Perpetual asset index (uint32, 0–4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
-};
-
-const TOKEN_INDEX_INPUT: InputConfig = {
-  name: "token",
-  label: "Token Index",
-  placeholder: "e.g. 0",
-  type: "uint64",
-  tooltip:
-    "Token index on HyperCore (uint64). 0 = USDC, 1 = PURR, 2 = HYPE. Check Hyperliquid docs for the full list.",
-};
-
-const SPOT_INDEX_INPUT: InputConfig = {
-  name: "spotIndex",
-  label: "Spot Index",
-  placeholder: "e.g. 0",
-  type: "uint64",
-  tooltip:
-    "Spot market index (uint64). Each spot market pairs two tokens. 0 = PURR/USDC, 1 = HYPE/USDC.",
-};
+import type { PrecompileConfig } from "@/components/PrecompileCard";
 
 export const precompiles: PrecompileConfig[] = [
   {
@@ -47,10 +12,21 @@ export const precompiles: PrecompileConfig[] = [
   {
     functionName: "getCoreUserExists",
     title: "Core User Exists",
-    description:
-      "Check whether a given address exists as a user on HyperCore.",
+    description: "Check whether a given address exists as a user on HyperCore.",
     badge: "User",
-    inputs: [USER_ADDRESS_INPUT],
+    inputs: [
+      {
+        name: "user",
+        label: "User Address",
+        placeholder: "0x...",
+        type: "address",
+        tooltip: {
+          description: "The HyperCore user address to check.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
+      },
+    ],
   },
   {
     functionName: "getWithdrawable",
@@ -58,48 +34,77 @@ export const precompiles: PrecompileConfig[] = [
     description:
       "Query the withdrawable balance for any user address on HyperCore.",
     badge: "User",
-    inputs: [USER_ADDRESS_INPUT],
+    inputs: [
+      {
+        name: "user",
+        label: "User Address",
+        placeholder: "0x...",
+        type: "address",
+        tooltip: {
+          description: "The user whose withdrawable balance you want to query.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
+      },
+    ],
   },
   {
     functionName: "getOraclePx",
     title: "Oracle Price",
-    description:
-      "Query the oracle price for a perpetual asset by its index.",
+    description: "Query the oracle price for a perpetual asset by its index.",
     badge: "Perps",
+    autoRefreshable: true,
     inputs: [
       {
-        ...PERP_INDEX_INPUT,
+        name: "perpIndex",
+        label: "Perp Index",
         placeholder: "e.g. 0 for BTC, 1 for ETH",
+        type: "uint32",
+        tooltip: {
+          description: "Perpetual asset index identifying the market.",
+          format: "uint32 (0 to 4,294,967,295)",
+          examples: ["0 = BTC", "1 = ETH", "2 = ARB", "3 = DOGE"],
+        },
       },
     ],
   },
   {
     functionName: "getMarkPx",
     title: "Mark Price",
-    description:
-      "Query the mark price for a perpetual asset by its index.",
+    description: "Query the mark price for a perpetual asset by its index.",
     badge: "Perps",
+    autoRefreshable: true,
     inputs: [
       {
-        ...PERP_INDEX_INPUT,
+        name: "perpIndex",
+        label: "Perp Index",
         placeholder: "e.g. 0 for BTC, 1 for ETH",
+        type: "uint32",
+        tooltip: {
+          description: "Perpetual asset index identifying the market.",
+          format: "uint32 (0 to 4,294,967,295)",
+          examples: ["0 = BTC", "1 = ETH", "2 = ARB", "3 = DOGE"],
+        },
       },
     ],
   },
   {
     functionName: "getBbo",
     title: "Best Bid & Offer",
-    description:
-      "Get the current best bid and ask for a perpetual asset.",
+    description: "Get the current best bid and ask for a perpetual asset.",
     badge: "Perps",
+    autoRefreshable: true,
     inputs: [
       {
         name: "asset",
         label: "Asset Index",
         placeholder: "e.g. 0",
         type: "uint64",
-        tooltip:
-          "Perpetual asset index (uint64). Common values: 0 = BTC, 1 = ETH.",
+        tooltip: {
+          description: "Asset index for the perpetual market.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+          examples: ["0 = BTC", "1 = ETH"],
+        },
       },
     ],
   },
@@ -111,8 +116,15 @@ export const precompiles: PrecompileConfig[] = [
     badge: "Perps",
     inputs: [
       {
-        ...PERP_INDEX_INPUT,
         name: "perp",
+        label: "Perp Index",
+        placeholder: "e.g. 0",
+        type: "uint32",
+        tooltip: {
+          description: "Perpetual asset index identifying the market.",
+          format: "uint32 (0 to 4,294,967,295)",
+          examples: ["0 = BTC", "1 = ETH", "2 = ARB", "3 = DOGE"],
+        },
       },
     ],
   },
@@ -123,14 +135,27 @@ export const precompiles: PrecompileConfig[] = [
       "Query an open perpetual position for a given user and asset, including size, entry notional, leverage, and isolation mode.",
     badge: "Perps",
     inputs: [
-      USER_ADDRESS_INPUT,
+      {
+        name: "user",
+        label: "User Address",
+        placeholder: "0x...",
+        type: "address",
+        tooltip: {
+          description: "The trader whose position you want to query.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
+      },
       {
         name: "perp",
         label: "Perp Index",
         placeholder: "e.g. 0",
         type: "uint16",
-        tooltip:
-          "Perpetual asset index (uint16, 0–65535). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
+        tooltip: {
+          description: "Perpetual asset index identifying the market.",
+          format: "uint16 (0 to 65,535)",
+          examples: ["0 = BTC", "1 = ETH", "2 = ARB", "3 = DOGE"],
+        },
       },
     ],
   },
@@ -146,10 +171,24 @@ export const precompiles: PrecompileConfig[] = [
         label: "Perp Dex Index",
         placeholder: "e.g. 0",
         type: "uint32",
-        tooltip:
-          "Perp DEX index (uint32, 0–4294967295). Use 0 for the default Hyperliquid perp DEX.",
+        tooltip: {
+          description:
+            "The perp DEX to query. Use 0 for the default Hyperliquid perp DEX.",
+          format: "uint32 (0 to 4,294,967,295)",
+          examples: ["0 = Default Hyperliquid perp DEX"],
+        },
       },
-      USER_ADDRESS_INPUT,
+      {
+        name: "user",
+        label: "User Address",
+        placeholder: "0x...",
+        type: "address",
+        tooltip: {
+          description: "The user whose margin summary you want to view.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
+      },
     ],
   },
   {
@@ -158,7 +197,31 @@ export const precompiles: PrecompileConfig[] = [
     description:
       "Check a user's spot balance for a specific token, including total, on hold, and entry notional.",
     badge: "Spot",
-    inputs: [USER_ADDRESS_INPUT, TOKEN_INDEX_INPUT],
+    inputs: [
+      {
+        name: "user",
+        label: "User Address",
+        placeholder: "0x...",
+        type: "address",
+        tooltip: {
+          description: "The user whose spot balance you want to check.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
+      },
+      {
+        name: "token",
+        label: "Token Index",
+        placeholder: "e.g. 0",
+        type: "uint64",
+        tooltip: {
+          description:
+            "Token index on HyperCore. Other indices can be looked up via Token Info.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+          examples: ["0 = USDC"],
+        },
+      },
+    ],
   },
   {
     functionName: "getSpotInfo",
@@ -166,15 +229,39 @@ export const precompiles: PrecompileConfig[] = [
     description:
       "Look up metadata for a spot market by index, including its name and the two token indices.",
     badge: "Spot",
-    inputs: [SPOT_INDEX_INPUT],
+    inputs: [
+      {
+        name: "spotIndex",
+        label: "Spot Index",
+        placeholder: "e.g. 0",
+        type: "uint64",
+        tooltip: {
+          description:
+            "Identifies a specific spot trading pair on Hyperliquid.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+        },
+      },
+    ],
   },
   {
     functionName: "getSpotPx",
     title: "Spot Price",
-    description:
-      "Query the current price for a spot market by its index.",
+    description: "Query the current price for a spot market by its index.",
     badge: "Spot",
-    inputs: [SPOT_INDEX_INPUT],
+    autoRefreshable: true,
+    inputs: [
+      {
+        name: "spotIndex",
+        label: "Spot Index",
+        placeholder: "e.g. 0",
+        type: "uint64",
+        tooltip: {
+          description:
+            "Identifies a specific spot trading pair on Hyperliquid.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+        },
+      },
+    ],
   },
   {
     functionName: "getTokenInfo",
@@ -182,7 +269,19 @@ export const precompiles: PrecompileConfig[] = [
     description:
       "Get full metadata for a token including name, deployer, EVM contract, spot markets, and decimal configuration.",
     badge: "Spot",
-    inputs: [TOKEN_INDEX_INPUT],
+    inputs: [
+      {
+        name: "token",
+        label: "Token Index",
+        placeholder: "e.g. 0",
+        type: "uint64",
+        tooltip: {
+          description: "Each token has a unique index on the platform.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+          examples: ["0 = USDC"],
+        },
+      },
+    ],
   },
   {
     functionName: "getTokenSupply",
@@ -190,7 +289,19 @@ export const precompiles: PrecompileConfig[] = [
     description:
       "Query supply metrics for a token including max, total, circulating, future emissions, and non circulating holder balances.",
     badge: "Spot",
-    inputs: [TOKEN_INDEX_INPUT],
+    inputs: [
+      {
+        name: "token",
+        label: "Token Index",
+        placeholder: "e.g. 0",
+        type: "uint64",
+        tooltip: {
+          description: "Each token has a unique index on the platform.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+          examples: ["0 = USDC"],
+        },
+      },
+    ],
   },
   {
     functionName: "getUserVaultEquity",
@@ -199,14 +310,27 @@ export const precompiles: PrecompileConfig[] = [
       "Query a user's equity in a specific vault, along with the lock expiry timestamp.",
     badge: "Vaults",
     inputs: [
-      USER_ADDRESS_INPUT,
+      {
+        name: "user",
+        label: "User Address",
+        placeholder: "0x...",
+        type: "address",
+        tooltip: {
+          description: "The user whose vault equity you want to query.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
+      },
       {
         name: "vault",
         label: "Vault Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address of the vault contract starting with 0x (42 characters total).",
+        tooltip: {
+          description: "The vault contract address to query equity for.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
     ],
   },
@@ -216,7 +340,20 @@ export const precompiles: PrecompileConfig[] = [
     description:
       "View all staking delegations for an address, including validator, amount, and lock expiry.",
     badge: "Staking",
-    inputs: [USER_ADDRESS_INPUT],
+    inputs: [
+      {
+        name: "user",
+        label: "User Address",
+        placeholder: "0x...",
+        type: "address",
+        tooltip: {
+          description:
+            "The delegator whose staking delegations you want to view.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
+      },
+    ],
   },
   {
     functionName: "getDelegatorSummary",
@@ -224,6 +361,18 @@ export const precompiles: PrecompileConfig[] = [
     description:
       "Get the staking summary for a delegator including total delegated, undelegated, pending withdrawals, and withdrawal count.",
     badge: "Staking",
-    inputs: [USER_ADDRESS_INPUT],
+    inputs: [
+      {
+        name: "user",
+        label: "User Address",
+        placeholder: "0x...",
+        type: "address",
+        tooltip: {
+          description: "The delegator whose staking summary you want to view.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
+      },
+    ],
   },
 ];
