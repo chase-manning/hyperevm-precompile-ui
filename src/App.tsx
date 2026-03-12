@@ -1,10 +1,19 @@
 import { useState, useMemo, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  Github,
+  Settings,
+  RotateCcw,
+  TriangleAlert,
+} from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useRpcHealth } from "@/hooks/use-rpc-health";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { PrecompileCard } from "@/components/PrecompileCard";
+import { RpcHealthIndicator } from "@/components/RpcHealthIndicator";
 import { precompiles } from "@/config/precompiles";
 
 function getStoredRpc(): string {
@@ -40,6 +49,17 @@ function App() {
 
   const isCustomRpc = customRpc.trim().length > 0;
 
+  const { status, blockNumber, latencyMs, recheck } =
+    useRpcHealth(publicClient);
+
+  // Re-check health whenever the settings panel is opened
+  const handleToggleSettings = useCallback(() => {
+    setShowSettings((prev) => {
+      if (!prev) recheck();
+      return !prev;
+    });
+  }, [recheck]);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-6 py-16">
@@ -50,7 +70,7 @@ function App() {
             </h1>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowSettings((prev) => !prev)}
+                onClick={handleToggleSettings}
                 className={`rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer ${
                   isCustomRpc ? "text-primary border-primary/50" : ""
                 }`}
@@ -110,11 +130,37 @@ function App() {
                 value={customRpc}
                 onChange={(e) => handleRpcChange(e.target.value)}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {isCustomRpc
-                  ? `Using custom RPC: ${customRpc.trim()}`
-                  : `Using default RPC: ${DEFAULT_RPC_URL}`}
-              </p>
+              <div className="mt-3 flex items-center justify-between">
+                <RpcHealthIndicator
+                  status={status}
+                  blockNumber={blockNumber}
+                  latencyMs={latencyMs}
+                />
+                <span className="text-xs text-muted-foreground/70 truncate ml-4 max-w-[50%] text-right">
+                  {isCustomRpc ? customRpc.trim() : DEFAULT_RPC_URL}
+                </span>
+              </div>
+
+              {isCustomRpc && status === "unreachable" && (
+                <div className="mt-3 flex items-start gap-2 rounded-md bg-destructive/10 border border-destructive/20 p-3 text-xs text-destructive">
+                  <TriangleAlert className="h-4 w-4 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">
+                      Custom RPC is unreachable
+                    </p>
+                    <p className="mt-1 text-destructive/80">
+                      The endpoint did not respond. Check the URL or{" "}
+                      <button
+                        onClick={() => handleRpcChange("")}
+                        className="underline underline-offset-2 hover:text-destructive transition-colors cursor-pointer font-medium"
+                      >
+                        revert to the default RPC
+                      </button>
+                      .
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </header>
