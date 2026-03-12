@@ -1,3 +1,6 @@
+import { useState, useCallback } from "react";
+import { Copy, Check } from "lucide-react";
+
 function formatValue(value: unknown): string {
   if (typeof value === "bigint") return value.toString();
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -8,6 +11,30 @@ function formatValue(value: unknown): string {
 
 function isNamedKey(key: string): boolean {
   return isNaN(Number(key));
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API not available
+    }
+  }, [text]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="inline-flex items-center justify-center size-5 rounded text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted transition-colors opacity-0 group-hover/value:opacity-100 shrink-0 cursor-pointer"
+      title={copied ? "Copied!" : "Copy value"}
+    >
+      {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+    </button>
+  );
 }
 
 interface ResultDisplayProps {
@@ -25,7 +52,12 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
     typeof data === "string"
   ) {
     return (
-      <span className="font-mono text-sm break-all">{formatValue(data)}</span>
+      <span className="inline-flex items-center gap-1 group/value">
+        <span className="font-mono text-sm break-all">
+          {formatValue(data)}
+        </span>
+        <CopyButton text={formatValue(data)} />
+      </span>
     );
   }
 
@@ -43,9 +75,11 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
     );
 
     if (isPrimitiveArray) {
+      const text = `[${data.map(formatValue).join(", ")}]`;
       return (
-        <span className="font-mono text-sm break-all">
-          [{data.map(formatValue).join(", ")}]
+        <span className="inline-flex items-center gap-1 group/value">
+          <span className="font-mono text-sm break-all">{text}</span>
+          <CopyButton text={text} />
         </span>
       );
     }

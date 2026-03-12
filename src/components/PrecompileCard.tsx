@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { Copy, Check } from "lucide-react";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
 
@@ -35,6 +36,14 @@ export interface PrecompileConfig {
   inputs: InputConfig[];
 }
 
+function serializeResult(data: unknown): string {
+  return JSON.stringify(
+    data,
+    (_key, value) => (typeof value === "bigint" ? value.toString() : value),
+    2
+  );
+}
+
 function parseArg(value: string, type: InputConfig["type"]): unknown {
   const trimmed = value.trim();
   if (type === "address") return trimmed as `0x${string}`;
@@ -53,6 +62,18 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyResult = useCallback(async () => {
+    if (result === null) return;
+    try {
+      await navigator.clipboard.writeText(serializeResult(result));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard API not available
+    }
+  }, [result]);
 
   const handleQuery = async () => {
     setLoading(true);
@@ -148,8 +169,21 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
           )}
 
           {result !== null && !error && hasQueried && (
-            <div className="rounded-md bg-muted/50 border border-border p-3">
-              <ResultDisplay data={result} />
+            <div className="relative rounded-md bg-muted/50 border border-border p-3">
+              <button
+                onClick={handleCopyResult}
+                className="absolute top-2 right-2 inline-flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                title={copied ? "Copied!" : "Copy result as JSON"}
+              >
+                {copied ? (
+                  <Check className="size-3.5" />
+                ) : (
+                  <Copy className="size-3.5" />
+                )}
+              </button>
+              <div className="pr-7">
+                <ResultDisplay data={result} />
+              </div>
             </div>
           )}
         </div>
