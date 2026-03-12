@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Copy, Check } from "lucide-react";
 
+
 export function formatValue(value: unknown): string {
   if (typeof value === "bigint") return value.toString();
   if (typeof value === "boolean") return value ? "true" : "false";

@@ -50,6 +50,7 @@ function serializeResult(data: unknown): string {
   );
 }
 
+
 const UINT_MAX: Record<string, bigint> = {
   uint16: BigInt(2 ** 16 - 1),
   uint32: BigInt(2 ** 32 - 1),
