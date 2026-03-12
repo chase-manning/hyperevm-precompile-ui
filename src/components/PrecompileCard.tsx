@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CopyButton } from "@/components/CopyButton";
+import { CopyToast } from "@/components/CopyToast";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { validateInput } from "@/lib/validation";
 import {
@@ -24,6 +25,7 @@ import {
   REFRESH_INTERVALS,
   type RefreshInterval,
 } from "@/hooks/use-auto-refresh";
+import { useCopyToast } from "@/hooks/use-copy-toast";
 import { Info } from "lucide-react";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
@@ -96,6 +98,7 @@ export const PrecompileCard = memo(function PrecompileCard({
   const [hasQueried, setHasQueried] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [refreshInterval, setRefreshInterval] = useState<RefreshInterval>(10);
+  const { toast, showToast } = useCopyToast();
 
   const validationErrors = useMemo(() => {
     const errors: Record<string, string | null> = {};
@@ -377,15 +380,22 @@ export const PrecompileCard = memo(function PrecompileCard({
           )}
 
           {result !== null && !error && hasQueried && (
-            <div className="relative rounded-md bg-muted/50 border border-border p-3">
-              <div className="absolute top-1.5 right-1.5">
-                <CopyButton value={result} />
+            <div className="rounded-md bg-muted/50 border border-border p-3">
+              <div className="pr-0">
+                <ResultDisplay data={result} onCopied={showToast} />
               </div>
-              <div className="pr-6">
-                <ResultDisplay data={result} />
+              <div className="mt-2 pt-2 border-t border-border/50 flex justify-end">
+                <CopyButton
+                  value={result}
+                  label="Copy JSON"
+                  size="sm"
+                  onCopied={showToast}
+                />
               </div>
             </div>
           )}
+
+          <CopyToast toast={toast} />
         </div>
       </CardContent>
     </Card>

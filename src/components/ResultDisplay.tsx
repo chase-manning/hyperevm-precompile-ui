@@ -27,11 +27,14 @@ function isNamedKey(key: string): boolean {
 interface ResultDisplayProps {
   data: unknown;
   depth?: number;
+  /** Optional callback invoked after a successful copy */
+  onCopied?: () => void;
 }
 
 export const ResultDisplay = memo(function ResultDisplay({
   data,
   depth = 0,
+  onCopied,
 }: ResultDisplayProps) {
   if (data === null || data === undefined) return null;
 
@@ -40,7 +43,7 @@ export const ResultDisplay = memo(function ResultDisplay({
       <span className="group/copy inline-flex items-center gap-1 font-mono text-sm break-all">
         {formatValue(data)}
         <span className="opacity-0 group-hover/copy:opacity-100 transition-opacity">
-          <CopyButton value={formatValue(data)} />
+          <CopyButton value={formatValue(data)} onCopied={onCopied} />
         </span>
       </span>
     );
@@ -60,7 +63,10 @@ export const ResultDisplay = memo(function ResultDisplay({
         <span className="group/copy inline-flex items-center gap-1 font-mono text-sm break-all">
           [{data.map(formatValue).join(", ")}]
           <span className="opacity-0 group-hover/copy:opacity-100 transition-opacity">
-            <CopyButton value={data.map(formatValue).join(", ")} />
+            <CopyButton
+              value={data.map(formatValue).join(", ")}
+              onCopied={onCopied}
+            />
           </span>
         </span>
       );
@@ -71,10 +77,15 @@ export const ResultDisplay = memo(function ResultDisplay({
         {data.map((item, i) => (
           <div
             key={i}
-            className="border border-border rounded-md p-3 mb-2 last:mb-0"
+            className="group/array-item relative border border-border rounded-md p-3 mb-2 last:mb-0"
           >
-            <div className="text-xs text-muted-foreground mb-1">[{i}]</div>
-            <ResultDisplay data={item} depth={depth + 1} />
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-xs text-muted-foreground">[{i}]</div>
+              <span className="opacity-0 group-hover/array-item:opacity-100 transition-opacity">
+                <CopyButton value={item} onCopied={onCopied} />
+              </span>
+            </div>
+            <ResultDisplay data={item} depth={depth + 1} onCopied={onCopied} />
           </div>
         ))}
       </div>
@@ -97,12 +108,24 @@ export const ResultDisplay = memo(function ResultDisplay({
 
           if (isComplex) {
             return (
-              <div key={key}>
-                <dt className="text-xs font-medium text-muted-foreground mb-1">
-                  {key}
-                </dt>
+              <div
+                key={key}
+                className="group/struct relative border border-border/50 rounded-md p-2"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <dt className="text-xs font-medium text-muted-foreground">
+                    {key}
+                  </dt>
+                  <span className="opacity-0 group-hover/struct:opacity-100 transition-opacity">
+                    <CopyButton value={value} onCopied={onCopied} />
+                  </span>
+                </div>
                 <dd className="ml-3">
-                  <ResultDisplay data={value} depth={depth + 1} />
+                  <ResultDisplay
+                    data={value}
+                    depth={depth + 1}
+                    onCopied={onCopied}
+                  />
                 </dd>
               </div>
             );
@@ -114,7 +137,11 @@ export const ResultDisplay = memo(function ResultDisplay({
                 {key}
               </dt>
               <dd>
-                <ResultDisplay data={value} depth={depth + 1} />
+                <ResultDisplay
+                  data={value}
+                  depth={depth + 1}
+                  onCopied={onCopied}
+                />
               </dd>
             </div>
           );
