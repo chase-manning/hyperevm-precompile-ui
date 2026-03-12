@@ -19,19 +19,22 @@ async function probeRpc(
 ) {
   setHealth({ status: "checking", blockNumber: null, latencyMs: null });
 
-  const timeoutId = setTimeout(() => {
-    if (!signal.aborted) {
-      setHealth({ status: "unreachable", blockNumber: null, latencyMs: null });
-    }
-  }, TIMEOUT_MS);
+  // Combine the caller's cleanup signal with a timeout signal so the
+  // underlying fetch is actually cancelled when either fires.
+  const timeoutSignal = AbortSignal.timeout(TIMEOUT_MS);
+  const combinedSignal = AbortSignal.any([signal, timeoutSignal]);
+
+  let settled = false;
 
   const start = performance.now();
   try {
-    const blockNumber = await publicClient.getBlockNumber();
+    const blockNumber = await publicClient.getBlockNumber({
+      signal: combinedSignal,
+    } as any);
     const latencyMs = Math.round(performance.now() - start);
 
-    clearTimeout(timeoutId);
-    if (signal.aborted) return;
+    if (settled || signal.aborted) return;
+    settled = true;
 
     setHealth({
       status: latencyMs > SLOW_THRESHOLD_MS ? "slow" : "connected",
@@ -39,8 +42,8 @@ async function probeRpc(
       latencyMs,
     });
   } catch {
-    clearTimeout(timeoutId);
-    if (signal.aborted) return;
+    if (settled || signal.aborted) return;
+    settled = true;
 
     setHealth({
       status: "unreachable",
