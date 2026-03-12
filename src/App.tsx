@@ -1,11 +1,19 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sun, Moon, Github, Settings, RotateCcw, Search } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { PrecompileCard } from "@/components/PrecompileCard";
 import { precompiles } from "@/config/precompiles";
+
+const CATEGORIES = [
+  "All",
+  ...Array.from(new Set(precompiles.map((p) => p.badge))),
+] as const;
+
+type Category = (typeof CATEGORIES)[number];
 
 function getStoredRpc(): string {
   try {
@@ -15,10 +23,35 @@ function getStoredRpc(): string {
   }
 }
 
+function getCategoryFromUrl(): Category {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get("category");
+    if (cat && CATEGORIES.includes(cat as Category)) {
+      return cat as Category;
+    }
+  } catch {
+    // URL parsing unavailable
+  }
+  return "All";
+}
+
+function getSearchFromUrl(): string {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search") || "";
+  } catch {
+    return "";
+  }
+}
+
 function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
+  const [search, setSearch] = useState(getSearchFromUrl);
+  const [activeCategory, setActiveCategory] =
+    useState<Category>(getCategoryFromUrl);
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
@@ -37,6 +70,34 @@ function App() {
     () => makePublicClient(customRpc.trim() || undefined),
     [customRpc]
   );
+
+  // Sync filters to URL
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeCategory !== "All") params.set("category", activeCategory);
+    if (search.trim()) params.set("search", search.trim());
+    const qs = params.toString();
+    const newUrl = qs
+      ? `${window.location.pathname}?${qs}`
+      : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }, [activeCategory, search]);
+
+  const filteredPrecompiles = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return precompiles.filter((config) => {
+      if (activeCategory !== "All" && config.badge !== activeCategory)
+        return false;
+      if (
+        query &&
+        !config.title.toLowerCase().includes(query) &&
+        !config.description.toLowerCase().includes(query) &&
+        !config.functionName.toLowerCase().includes(query)
+      )
+        return false;
+      return true;
+    });
+  }, [search, activeCategory]);
 
   const isCustomRpc = customRpc.trim().length > 0;
 
@@ -125,14 +186,80 @@ function App() {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Available Reads
           </h2>
-          <div className="grid gap-4">
-            {precompiles.map((config) => (
-              <PrecompileCard
-                key={config.functionName}
-                config={config}
-                publicClient={publicClient}
+
+          {/* Search and filter controls */}
+          <div className="mb-6 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or description..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
               />
-            ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {CATEGORIES.map((category) => {
+                const isActive = activeCategory === category;
+                return (
+                  <button
+                    key={category}
+                    onClick={() => setActiveCategory(category)}
+                    className="cursor-pointer"
+                  >
+                    <Badge
+                      variant={isActive ? "default" : "outline"}
+                      className={
+                        isActive
+                          ? ""
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      }
+                    >
+                      {category}
+                    </Badge>
+                  </button>
+                );
+              })}
+
+              <span className="ml-auto text-xs text-muted-foreground">
+                {filteredPrecompiles.length} of {precompiles.length}{" "}
+                {precompiles.length === 1 ? "query" : "queries"}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            {filteredPrecompiles.length > 0 ? (
+              filteredPrecompiles.map((config) => (
+                <PrecompileCard
+                  key={config.functionName}
+                  config={config}
+                  publicClient={publicClient}
+                />
+              ))
+            ) : (
+              <div className="rounded-lg border border-border bg-card py-12 text-center">
+                <p className="text-muted-foreground">
+                  No queries match your{" "}
+                  {search.trim() && activeCategory !== "All"
+                    ? "search and filter"
+                    : search.trim()
+                      ? "search"
+                      : "filter"}
+                  .
+                </p>
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setActiveCategory("All");
+                  }}
+                  className="mt-2 text-sm text-primary hover:underline underline-offset-4 cursor-pointer"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
