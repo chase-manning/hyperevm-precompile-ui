@@ -1,4 +1,7 @@
-import type { InputConfig, PrecompileConfig } from "@/components/PrecompileCard";
+import type {
+  InputConfig,
+  PrecompileConfig,
+} from "@/components/PrecompileCard";
 
 const USER_ADDRESS_INPUT: InputConfig = {
   name: "user",
