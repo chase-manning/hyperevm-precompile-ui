@@ -138,6 +138,9 @@ export function useAutoRefresh({
 
         // Immediately refresh on becoming visible
         doRefresh();
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
         timerRef.current = setInterval(doRefresh, currentInterval * 1000);
       }
     };
