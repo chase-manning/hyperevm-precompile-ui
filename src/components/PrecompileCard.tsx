@@ -45,8 +45,27 @@ export interface PrecompileConfig {
 function parseArg(value: string, type: InputConfig["type"]): unknown {
   const trimmed = value.trim();
   if (type === "address") return trimmed as `0x${string}`;
-  if (type === "uint64") return BigInt(trimmed);
-  return Number(trimmed);
+
+  if (!/^\d+$/.test(trimmed)) {
+    throw new Error(`Invalid ${type} value: expected a non-negative integer`);
+  }
+
+  if (type === "uint64") {
+    const val = BigInt(trimmed);
+    if (val > BigInt("18446744073709551615")) {
+      throw new Error("Invalid uint64 value: exceeds max uint64");
+    }
+    return val;
+  }
+
+  const num = Number(trimmed);
+  if (type === "uint16" && (num > 65535 || !Number.isInteger(num))) {
+    throw new Error("Invalid uint16 value: exceeds max uint16 (65535)");
+  }
+  if (type === "uint32" && (num > 4294967295 || !Number.isInteger(num))) {
+    throw new Error("Invalid uint32 value: exceeds max uint32 (4294967295)");
+  }
+  return num;
 }
 
 interface PrecompileCardProps {
@@ -142,6 +161,8 @@ export const PrecompileCard = memo(function PrecompileCard({
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      setError("Failed to copy link to clipboard");
     });
   }, [config, values]);
 
