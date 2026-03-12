@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
+import { Sun, Moon, Github, Settings, RotateCcw, Search } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
@@ -286,6 +286,35 @@ const precompiles: PrecompileConfig[] = [
   },
 ];
 
+const ALL_CATEGORY = "All";
+const categories = [
+  ALL_CATEGORY,
+  ...Array.from(new Set(precompiles.map((p) => p.badge))),
+];
+
+function getCategoryFromUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get("category");
+  if (category && categories.includes(category)) return category;
+  return ALL_CATEGORY;
+}
+
+function getSearchFromUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("search") || "";
+}
+
+function syncFiltersToUrl(search: string, category: string) {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+  if (category !== ALL_CATEGORY) params.set("category", category);
+  const qs = params.toString();
+  const newUrl = qs
+    ? `${window.location.pathname}?${qs}`
+    : window.location.pathname;
+  window.history.replaceState(null, "", newUrl);
+}
+
 function getStoredRpc(): string {
   return safeGetItem(STORAGE_KEYS.CUSTOM_RPC_URL) || "";
 }
@@ -294,6 +323,39 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
+  const [search, setSearch] = useState(getSearchFromUrl);
+  const [activeCategory, setActiveCategory] = useState(getCategoryFromUrl);
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+      syncFiltersToUrl(value, activeCategory);
+    },
+    [activeCategory]
+  );
+
+  const handleCategoryChange = useCallback(
+    (category: string) => {
+      setActiveCategory(category);
+      syncFiltersToUrl(search, category);
+    },
+    [search]
+  );
+
+  const filteredPrecompiles = useMemo(() => {
+    return precompiles.filter((p) => {
+      const matchesCategory =
+        activeCategory === ALL_CATEGORY || p.badge === activeCategory;
+      if (!matchesCategory) return false;
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        p.title.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        p.functionName.toLowerCase().includes(q)
+      );
+    });
+  }, [search, activeCategory]);
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
@@ -397,15 +459,70 @@ function App() {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Available Reads
           </h2>
-          <div className="grid gap-4">
-            {precompiles.map((config) => (
-              <PrecompileCard
-                key={config.functionName}
-                config={config}
-                publicClient={publicClient}
+
+          <div className="mb-6 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search precompiles..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-9"
               />
-            ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className={cn(
+                    "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer",
+                    activeCategory === category
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Showing {filteredPrecompiles.length} of {precompiles.length}{" "}
+              precompile{precompiles.length === 1 ? "" : "s"}
+            </p>
           </div>
+
+          {filteredPrecompiles.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredPrecompiles.map((config) => (
+                <PrecompileCard
+                  key={config.functionName}
+                  config={config}
+                  publicClient={publicClient}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border py-12 text-center">
+              <p className="text-muted-foreground text-sm">
+                No precompiles match your search
+                {activeCategory !== ALL_CATEGORY &&
+                  ` in "${activeCategory}"`}
+                .
+              </p>
+              <button
+                onClick={() => {
+                  handleSearchChange("");
+                  handleCategoryChange(ALL_CATEGORY);
+                }}
+                className="mt-2 text-sm text-primary hover:underline cursor-pointer"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
         </section>
 
         <Separator className="mt-10 mb-6" />
