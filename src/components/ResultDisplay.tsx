@@ -1,3 +1,16 @@
+import { memo } from "react";
+
+function isPrimitive(
+  value: unknown
+): value is bigint | boolean | number | string {
+  return (
+    typeof value === "bigint" ||
+    typeof value === "boolean" ||
+    typeof value === "number" ||
+    typeof value === "string"
+  );
+}
+
 function formatValue(value: unknown): string {
   if (typeof value === "bigint") return value.toString();
   if (typeof value === "boolean") return value ? "true" : "false";
@@ -15,15 +28,13 @@ interface ResultDisplayProps {
   depth?: number;
 }
 
-export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
+export const ResultDisplay = memo(function ResultDisplay({
+  data,
+  depth = 0,
+}: ResultDisplayProps) {
   if (data === null || data === undefined) return null;
 
-  if (
-    typeof data === "bigint" ||
-    typeof data === "boolean" ||
-    typeof data === "number" ||
-    typeof data === "string"
-  ) {
+  if (isPrimitive(data)) {
     return (
       <span className="font-mono text-sm break-all">{formatValue(data)}</span>
     );
@@ -36,13 +47,7 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
       );
     }
 
-    const isPrimitiveArray = data.every(
-      (item) =>
-        typeof item === "bigint" ||
-        typeof item === "boolean" ||
-        typeof item === "number" ||
-        typeof item === "string"
-    );
+    const isPrimitiveArray = data.every(isPrimitive);
 
     if (isPrimitiveArray) {
       return (
@@ -110,4 +115,4 @@ export function ResultDisplay({ data, depth = 0 }: ResultDisplayProps) {
   }
 
   return <span className="font-mono text-sm">{String(data)}</span>;
-}
+});
