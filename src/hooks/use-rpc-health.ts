@@ -11,6 +11,7 @@ export interface RpcHealth {
 
 const SLOW_THRESHOLD_MS = 2000;
 const TIMEOUT_MS = 10_000;
+const POLL_INTERVAL_MS = 30_000;
 
 async function probeRpc(
   publicClient: PublicClient,
@@ -19,22 +20,24 @@ async function probeRpc(
 ) {
   setHealth({ status: "checking", blockNumber: null, latencyMs: null });
 
-  // Combine the caller's cleanup signal with a timeout signal so the
-  // underlying fetch is actually cancelled when either fires.
-  const timeoutSignal = AbortSignal.timeout(TIMEOUT_MS);
-  const combinedSignal = AbortSignal.any([signal, timeoutSignal]);
-
-  let settled = false;
-
   const start = performance.now();
   try {
-    const blockNumber = await publicClient.getBlockNumber({
-      signal: combinedSignal,
-    } as any);
+    const blockNumber = await Promise.race([
+      publicClient.getBlockNumber(),
+      new Promise<never>((_, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("RPC probe timed out")),
+          TIMEOUT_MS
+        );
+        signal.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new Error("aborted"));
+        });
+      }),
+    ]);
     const latencyMs = Math.round(performance.now() - start);
 
-    if (settled || signal.aborted) return;
-    settled = true;
+    if (signal.aborted) return;
 
     setHealth({
       status: latencyMs > SLOW_THRESHOLD_MS ? "slow" : "connected",
@@ -42,8 +45,7 @@ async function probeRpc(
       latencyMs,
     });
   } catch {
-    if (settled || signal.aborted) return;
-    settled = true;
+    if (signal.aborted) return;
 
     setHealth({
       status: "unreachable",
@@ -53,7 +55,7 @@ async function probeRpc(
   }
 }
 
-export function useRpcHealth(publicClient: PublicClient, rpcUrl?: string) {
+export function useRpcHealth(publicClient: PublicClient) {
   const [health, setHealth] = useState<RpcHealth>({
     status: "checking",
     blockNumber: null,
@@ -64,11 +66,18 @@ export function useRpcHealth(publicClient: PublicClient, rpcUrl?: string) {
 
   useEffect(() => {
     const controller = new AbortController();
+
     probeRpc(publicClient, controller.signal, setHealth);
+
+    const interval = setInterval(() => {
+      probeRpc(publicClient, controller.signal, setHealth);
+    }, POLL_INTERVAL_MS);
+
     return () => {
       controller.abort();
+      clearInterval(interval);
     };
-  }, [publicClient, recheckCounter, rpcUrl]);
+  }, [publicClient, recheckCounter]);
 
   const recheck = useCallback(() => {
     setRecheckCounter((c) => c + 1);
