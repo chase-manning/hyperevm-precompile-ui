@@ -91,6 +91,14 @@ function App() {
               </button>
             </div>
           </div>
+          <div className="mb-4">
+            <RpcHealthIndicator
+              status={status}
+              blockNumber={blockNumber}
+              latencyMs={latencyMs}
+            />
+          </div>
+
           <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
             A lightweight interface for reading on chain data from{" "}
             <a

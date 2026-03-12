@@ -21,20 +21,23 @@ async function probeRpc(
   setHealth({ status: "checking", blockNumber: null, latencyMs: null });
 
   const start = performance.now();
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const blockNumber = await Promise.race([
       publicClient.getBlockNumber(),
       new Promise<never>((_, reject) => {
-        const timer = setTimeout(
+        timer = setTimeout(
           () => reject(new Error("RPC probe timed out")),
           TIMEOUT_MS
         );
-        signal.addEventListener("abort", () => {
+        const onAbort = () => {
           clearTimeout(timer);
           reject(new Error("aborted"));
-        });
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
       }),
     ]);
+    clearTimeout(timer);
     const latencyMs = Math.round(performance.now() - start);
 
     if (signal.aborted) return;
@@ -45,6 +48,7 @@ async function probeRpc(
       latencyMs,
     });
   } catch {
+    clearTimeout(timer);
     if (signal.aborted) return;
 
     setHealth({
@@ -65,16 +69,20 @@ export function useRpcHealth(publicClient: PublicClient) {
   const [recheckCounter, setRecheckCounter] = useState(0);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let activeController: AbortController | null = null;
 
-    probeRpc(publicClient, controller.signal, setHealth);
+    function runProbe() {
+      if (activeController) activeController.abort();
+      activeController = new AbortController();
+      probeRpc(publicClient, activeController.signal, setHealth);
+    }
 
-    const interval = setInterval(() => {
-      probeRpc(publicClient, controller.signal, setHealth);
-    }, POLL_INTERVAL_MS);
+    runProbe();
+
+    const interval = setInterval(runProbe, POLL_INTERVAL_MS);
 
     return () => {
-      controller.abort();
+      if (activeController) activeController.abort();
       clearInterval(interval);
     };
   }, [publicClient, recheckCounter]);
