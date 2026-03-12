@@ -48,7 +48,7 @@ interface PrecompileCardProps {
   publicClient: PublicClient;
   initialValues?: Record<string, string>;
   autoExecute?: boolean;
-  targetRef?: React.RefObject<HTMLDivElement | null> | ((node: HTMLDivElement | null) => void);
+  targetRef?: React.Ref<HTMLDivElement>;
 }
 
 export function PrecompileCard({
@@ -116,45 +116,8 @@ export function PrecompileCard({
     const ready = config.inputs.length === 0 || allFilled;
     if (!ready) return;
 
-    let cancelled = false;
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-      setResult(null);
-      setHasQueried(true);
-      try {
-        const args = config.inputs.map((input) =>
-          parseArg(initialValues[input.name] || "", input.type)
-        );
-        const data = await publicClient.readContract({
-          address: CONTRACT_ADDRESS,
-          abi: CONTRACT_ABI,
-          functionName: config.functionName,
-          args: (args.length > 0 ? args : undefined) as never,
-        });
-        if (!cancelled) setResult(data);
-      } catch (err: unknown) {
-        if (cancelled) return;
-        if (err instanceof Error) {
-          const msg = err.message;
-          const precompileMatch = msg.match(/PrecompileLib__\w+/);
-          if (precompileMatch) {
-            setError(precompileMatch[0].replace("PrecompileLib__", ""));
-          } else if (msg.includes("reverted")) {
-            setError("Contract call reverted. Check your inputs.");
-          } else {
-            setError(msg.length > 200 ? msg.slice(0, 200) + "..." : msg);
-          }
-        } else {
-          setError("Query failed");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    run();
-    return () => { cancelled = true; };
-  }, [autoExecute, initialValues, config, publicClient]);
+    handleQuery();
+  }, [autoExecute, initialValues, config.inputs, handleQuery]);
 
   const handleShare = useCallback(() => {
     const url = new URL(window.location.href);

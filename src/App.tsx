@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
@@ -45,18 +45,42 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
   const [urlParams, setUrlParams] = useState(getUrlParams);
+  const hasScrolled = useRef(false);
 
-  // Listen for popstate (browser back/forward) to update URL params
+  // Listen for popstate and programmatic history changes to update URL params
   useEffect(() => {
+    // Issue 5: Clean URL after consuming initial params so it doesn't become stale
+    if (window.location.search) {
+      history.replaceState({}, "", window.location.pathname);
+    }
+
     const handler = () => setUrlParams(getUrlParams());
     window.addEventListener("popstate", handler);
-    return () => window.removeEventListener("popstate", handler);
+
+    // Issue 4: Patch pushState/replaceState so programmatic URL changes also update state
+    const origPushState = history.pushState.bind(history);
+    const origReplaceState = history.replaceState.bind(history);
+    history.pushState = (...args: Parameters<typeof history.pushState>) => {
+      origPushState(...args);
+      handler();
+    };
+    history.replaceState = (...args: Parameters<typeof history.replaceState>) => {
+      origReplaceState(...args);
+      handler();
+    };
+
+    return () => {
+      window.removeEventListener("popstate", handler);
+      history.pushState = origPushState;
+      history.replaceState = origReplaceState;
+    };
   }, []);
 
   // Ref callback to scroll to target card when it mounts (avoids race condition)
   const targetCardRefCallback = useCallback(
     (node: HTMLDivElement | null) => {
-      if (node && urlParams.fn) {
+      if (node && urlParams.fn && !hasScrolled.current) {
+        hasScrolled.current = true;
         requestAnimationFrame(() => {
           node.scrollIntoView({ behavior: "smooth", block: "center" });
         });
