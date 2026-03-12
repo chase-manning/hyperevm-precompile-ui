@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -65,7 +65,10 @@ interface PrecompileCardProps {
   publicClient: PublicClient;
 }
 
-export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
+export const PrecompileCard = memo(function PrecompileCard({
+  config,
+  publicClient,
+}: PrecompileCardProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +100,7 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
       ? "Fix validation errors before querying"
       : null;
 
-  const handleQuery = async () => {
+  const handleQuery = useCallback(async () => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -133,7 +136,7 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [config.inputs, config.functionName, publicClient, values]);
 
   return (
     <Card>
@@ -255,4 +258,4 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
       </CardContent>
     </Card>
   );
-}
+});
