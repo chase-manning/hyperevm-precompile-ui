@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { validateInput } from "@/lib/validation";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
 
@@ -38,8 +39,18 @@ export interface PrecompileConfig {
 function parseArg(value: string, type: InputConfig["type"]): unknown {
   const trimmed = value.trim();
   if (type === "address") return trimmed as `0x${string}`;
-  if (type === "uint64") return BigInt(trimmed);
-  return Number(trimmed);
+  if (type === "uint64") {
+    try {
+      return BigInt(trimmed);
+    } catch {
+      throw new Error(`Invalid uint64 value: "${trimmed}"`);
+    }
+  }
+  const n = Number(trimmed);
+  if (!Number.isFinite(n)) {
+    throw new Error(`Invalid number: "${trimmed}"`);
+  }
+  return n;
 }
 
 interface PrecompileCardProps {
@@ -49,10 +60,32 @@ interface PrecompileCardProps {
 
 export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
   const [values, setValues] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
+
+  const validationErrors = useMemo(() => {
+    const errors: Record<string, string | null> = {};
+    for (const input of config.inputs) {
+      errors[input.name] = validateInput(
+        values[input.name] || "",
+        input.type
+      );
+    }
+    return errors;
+  }, [values, config.inputs]);
+
+  const hasValidationErrors = Object.values(validationErrors).some(
+    (e) => e !== null
+  );
+
+  const allInputsFilled = config.inputs.every(
+    (input) => (values[input.name] || "").trim() !== ""
+  );
+  const canQuery =
+    (config.inputs.length === 0 || allInputsFilled) && !hasValidationErrors;
 
   const handleQuery = async () => {
     setLoading(true);
@@ -92,11 +125,6 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
     }
   };
 
-  const allInputsFilled = config.inputs.every(
-    (input) => (values[input.name] || "").trim() !== ""
-  );
-  const canQuery = config.inputs.length === 0 || allInputsFilled;
-
   return (
     <Card>
       <CardHeader>
@@ -108,35 +136,53 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {config.inputs.map((input) => (
-            <div key={input.name} className="space-y-1.5">
-              <Label htmlFor={`${config.functionName}-${input.name}`}>
-                {input.label}
-              </Label>
-              <Input
-                id={`${config.functionName}-${input.name}`}
-                placeholder={input.placeholder}
-                value={values[input.name] || ""}
-                onChange={(e) =>
-                  setValues((prev) => ({
-                    ...prev,
-                    [input.name]: e.target.value,
-                  }))
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && canQuery && !loading) {
-                    handleQuery();
+          {config.inputs.map((input) => {
+            const fieldError = validationErrors[input.name];
+            const showError = touched[input.name] && fieldError;
+            return (
+              <div key={input.name} className="space-y-1.5">
+                <Label htmlFor={`${config.functionName}-${input.name}`}>
+                  {input.label}
+                </Label>
+                <Input
+                  id={`${config.functionName}-${input.name}`}
+                  placeholder={input.placeholder}
+                  value={values[input.name] || ""}
+                  aria-invalid={!!showError}
+                  onChange={(e) =>
+                    setValues((prev) => ({
+                      ...prev,
+                      [input.name]: e.target.value,
+                    }))
                   }
-                }}
-              />
-            </div>
-          ))}
+                  onBlur={() =>
+                    setTouched((prev) => ({ ...prev, [input.name]: true }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && canQuery && !loading) {
+                      handleQuery();
+                    }
+                  }}
+                />
+                {showError && (
+                  <p className="text-xs text-destructive">{fieldError}</p>
+                )}
+              </div>
+            );
+          })}
 
           <Button
             onClick={handleQuery}
             disabled={loading || !canQuery}
             className="w-full"
             size="sm"
+            title={
+              hasValidationErrors
+                ? "Fix validation errors before querying"
+                : !allInputsFilled && config.inputs.length > 0
+                  ? "Fill in all fields before querying"
+                  : undefined
+            }
           >
             {loading ? "Querying..." : "Query"}
           </Button>

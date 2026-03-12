@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
+import { validateRpcUrl } from "@/lib/validation";
 import {
   PrecompileCard,
   type PrecompileConfig,
@@ -297,12 +298,15 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
 
+  const rpcError = useMemo(() => validateRpcUrl(customRpc), [customRpc]);
+
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
+    const error = validateRpcUrl(value);
     try {
-      if (value.trim()) {
+      if (value.trim() && !error) {
         localStorage.setItem("customRpcUrl", value.trim());
-      } else {
+      } else if (!value.trim()) {
         localStorage.removeItem("customRpcUrl");
       }
     } catch {
@@ -311,8 +315,8 @@ function App() {
   }, []);
 
   const publicClient = useMemo(
-    () => makePublicClient(customRpc.trim() || undefined),
-    [customRpc]
+    () => makePublicClient(!rpcError ? customRpc.trim() || undefined : undefined),
+    [customRpc, rpcError]
   );
 
   const isCustomRpc = customRpc.trim().length > 0;
@@ -385,13 +389,18 @@ function App() {
                 id="custom-rpc"
                 placeholder={DEFAULT_RPC_URL}
                 value={customRpc}
+                aria-invalid={!!rpcError}
                 onChange={(e) => handleRpcChange(e.target.value)}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {isCustomRpc
-                  ? `Using custom RPC: ${customRpc.trim()}`
-                  : `Using default RPC: ${DEFAULT_RPC_URL}`}
-              </p>
+              {rpcError ? (
+                <p className="mt-2 text-xs text-destructive">{rpcError}</p>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {isCustomRpc
+                    ? `Using custom RPC: ${customRpc.trim()}`
+                    : `Using default RPC: ${DEFAULT_RPC_URL}`}
+                </p>
+              )}
             </div>
           )}
         </header>
