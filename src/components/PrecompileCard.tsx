@@ -48,7 +48,7 @@ const UINT_MAX: Record<string, bigint> = {
   uint64: (BigInt(1) << BigInt(64)) - BigInt(1),
 };
 
-function parseArg(value: string, type: InputConfig["type"]): unknown {
+export function parseArg(value: string, type: InputConfig["type"]): unknown {
   const trimmed = value.trim();
   if (type === "address") return trimmed as `0x${string}`;
 
