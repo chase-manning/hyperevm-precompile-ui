@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { parseArg } from "@/lib/parse-arg";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
 
@@ -33,13 +34,6 @@ export interface PrecompileConfig {
   description: string;
   badge: string;
   inputs: InputConfig[];
-}
-
-function parseArg(value: string, type: InputConfig["type"]): unknown {
-  const trimmed = value.trim();
-  if (type === "address") return trimmed as `0x${string}`;
-  if (type === "uint64") return BigInt(trimmed);
-  return Number(trimmed);
 }
 
 interface PrecompileCardProps {
