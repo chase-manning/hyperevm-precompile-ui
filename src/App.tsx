@@ -1,11 +1,52 @@
 import { useState, useMemo, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sun, Moon, Github, Settings, RotateCcw, Search } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { PrecompileCard } from "@/components/PrecompileCard";
 import { precompiles } from "@/config/precompiles";
+
+const CATEGORIES = ["All", "System", "User", "Perps", "Spot", "Vaults", "Staking"] as const;
+type Category = (typeof CATEGORIES)[number];
+
+function getCategoryFromUrl(): Category {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get("category");
+    if (cat && CATEGORIES.includes(cat as Category)) {
+      return cat as Category;
+    }
+  } catch {
+    // URL parsing unavailable
+  }
+  return "All";
+}
+
+function getSearchFromUrl(): string {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search") || "";
+  } catch {
+    return "";
+  }
+}
+
+function syncFiltersToUrl(category: Category, search: string) {
+  try {
+    const params = new URLSearchParams();
+    if (category !== "All") params.set("category", category);
+    if (search.trim()) params.set("search", search.trim());
+    const qs = params.toString();
+    const newUrl = qs
+      ? `${window.location.pathname}?${qs}`
+      : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  } catch {
+    // URL update unavailable
+  }
+}
 
 function getStoredRpc(): string {
   try {
@@ -19,6 +60,8 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
+  const [search, setSearch] = useState(getSearchFromUrl);
+  const [activeCategory, setActiveCategory] = useState<Category>(getCategoryFromUrl);
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
@@ -37,6 +80,38 @@ function App() {
     () => makePublicClient(customRpc.trim() || undefined),
     [customRpc]
   );
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearch(value);
+      syncFiltersToUrl(activeCategory, value);
+    },
+    [activeCategory]
+  );
+
+  const handleCategoryChange = useCallback(
+    (category: Category) => {
+      setActiveCategory(category);
+      syncFiltersToUrl(category, search);
+    },
+    [search]
+  );
+
+  const filteredPrecompiles = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return precompiles.filter((config) => {
+      if (activeCategory !== "All" && config.badge !== activeCategory) {
+        return false;
+      }
+      if (query) {
+        return (
+          config.title.toLowerCase().includes(query) ||
+          config.description.toLowerCase().includes(query)
+        );
+      }
+      return true;
+    });
+  }, [search, activeCategory]);
 
   const isCustomRpc = customRpc.trim().length > 0;
 
@@ -125,15 +200,57 @@ function App() {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Available Reads
           </h2>
-          <div className="grid gap-4">
-            {precompiles.map((config) => (
-              <PrecompileCard
-                key={config.functionName}
-                config={config}
-                publicClient={publicClient}
+
+          <div className="mb-6 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search by name or description…"
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-9"
               />
-            ))}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className="cursor-pointer"
+                >
+                  <Badge
+                    variant={activeCategory === category ? "default" : "outline"}
+                  >
+                    {category}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredPrecompiles.length} of {precompiles.length} reads
+            </p>
           </div>
+
+          {filteredPrecompiles.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredPrecompiles.map((config) => (
+                <PrecompileCard
+                  key={config.functionName}
+                  config={config}
+                  publicClient={publicClient}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-8 text-center">
+              <p className="text-muted-foreground">
+                No reads match your current filters. Try a different search term
+                or category.
+              </p>
+            </div>
+          )}
         </section>
 
         <Separator className="mt-10 mb-6" />
