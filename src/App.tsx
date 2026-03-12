@@ -3,12 +3,14 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useRpcHealth } from "@/hooks/use-rpc-health";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
 import {
   PrecompileCard,
   type PrecompileConfig,
 } from "@/components/PrecompileCard";
+import { RpcStatusIndicator } from "@/components/RpcStatusIndicator";
 import {
   safeGetItem,
   safeSetItem,
@@ -349,6 +351,8 @@ function App() {
     [customRpc]
   );
 
+  const { status, blockNumber, latencyMs } = useRpcHealth(publicClient);
+
   const isCustomRpc = customRpc.trim().length > 0;
 
   return (
@@ -443,11 +447,31 @@ function App() {
                 value={customRpc}
                 onChange={(e) => handleRpcChange(e.target.value)}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {isCustomRpc
-                  ? `Using custom RPC: ${customRpc.trim()}`
-                  : `Using default RPC: ${DEFAULT_RPC_URL}`}
-              </p>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {isCustomRpc
+                    ? `Using custom RPC: ${customRpc.trim()}`
+                    : `Using default RPC: ${DEFAULT_RPC_URL}`}
+                </p>
+                <RpcStatusIndicator
+                  status={status}
+                  blockNumber={blockNumber}
+                  latencyMs={latencyMs}
+                />
+              </div>
+              {isCustomRpc && status === "unreachable" && (
+                <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-600 dark:text-red-400 flex items-center justify-between gap-2">
+                  <span>
+                    Custom RPC is unreachable. Check the URL and try again.
+                  </span>
+                  <button
+                    onClick={() => handleRpcChange("")}
+                    className="shrink-0 underline underline-offset-2 hover:text-red-800 dark:hover:text-red-200 transition-colors cursor-pointer"
+                  >
+                    Revert to default
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </header>
