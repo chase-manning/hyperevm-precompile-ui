@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResultDisplay } from "@/components/ResultDisplay";
+import { Link, Check } from "lucide-react";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
@@ -45,16 +46,29 @@ function parseArg(value: string, type: InputConfig["type"]): unknown {
 interface PrecompileCardProps {
   config: PrecompileConfig;
   publicClient: PublicClient;
+  initialValues?: Record<string, string>;
+  autoExecute?: boolean;
+  targetRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
-  const [values, setValues] = useState<Record<string, string>>({});
+export function PrecompileCard({
+  config,
+  publicClient,
+  initialValues,
+  autoExecute,
+  targetRef,
+}: PrecompileCardProps) {
+  const [values, setValues] = useState<Record<string, string>>(
+    initialValues ?? {}
+  );
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const hasAutoExecuted = useRef(false);
 
-  const handleQuery = async () => {
+  const handleQuery = useCallback(async () => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -90,7 +104,36 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [config, values, publicClient]);
+
+  useEffect(() => {
+    if (autoExecute && !hasAutoExecuted.current) {
+      hasAutoExecuted.current = true;
+      const allFilled = config.inputs.every(
+        (input) => (values[input.name] || "").trim() !== ""
+      );
+      const ready = config.inputs.length === 0 || allFilled;
+      if (ready) {
+        handleQuery();
+      }
+    }
+  }, [autoExecute, config.inputs, values, handleQuery]);
+
+  const handleShare = useCallback(() => {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("fn", config.functionName);
+    for (const input of config.inputs) {
+      const val = (values[input.name] || "").trim();
+      if (val) {
+        url.searchParams.set(input.name, val);
+      }
+    }
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [config, values]);
 
   const allInputsFilled = config.inputs.every(
     (input) => (values[input.name] || "").trim() !== ""
@@ -98,11 +141,25 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
   const canQuery = config.inputs.length === 0 || allInputsFilled;
 
   return (
-    <Card>
+    <Card ref={targetRef}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">{config.title}</CardTitle>
-          <Badge variant="secondary">{config.badge}</Badge>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              aria-label="Copy link to this query"
+              title="Copy link to this query"
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-green-500" />
+              ) : (
+                <Link className="h-3.5 w-3.5" />
+              )}
+            </button>
+            <Badge variant="secondary">{config.badge}</Badge>
+          </div>
         </div>
         <CardDescription>{config.description}</CardDescription>
       </CardHeader>

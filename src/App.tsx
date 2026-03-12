@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
@@ -15,10 +15,37 @@ function getStoredRpc(): string {
   }
 }
 
+function getUrlParams(): {
+  fn: string | null;
+  category: string | null;
+  inputValues: Record<string, string>;
+} {
+  const params = new URLSearchParams(window.location.search);
+  const fn = params.get("fn");
+  const category = params.get("category");
+
+  const inputValues: Record<string, string> = {};
+  if (fn) {
+    const target = precompiles.find((p) => p.functionName === fn);
+    if (target) {
+      for (const input of target.inputs) {
+        const val = params.get(input.name);
+        if (val) {
+          inputValues[input.name] = val;
+        }
+      }
+    }
+  }
+
+  return { fn, category, inputValues };
+}
+
 function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
+  const [urlParams] = useState(getUrlParams);
+  const targetCardRef = useRef<HTMLDivElement | null>(null);
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
@@ -39,6 +66,24 @@ function App() {
   );
 
   const isCustomRpc = customRpc.trim().length > 0;
+
+  const filteredPrecompiles = useMemo(() => {
+    if (urlParams.category) {
+      return precompiles.filter(
+        (p) => p.badge.toLowerCase() === urlParams.category!.toLowerCase()
+      );
+    }
+    return precompiles;
+  }, [urlParams.category]);
+
+  useEffect(() => {
+    if (urlParams.fn && targetCardRef.current) {
+      targetCardRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [urlParams.fn]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,17 +167,38 @@ function App() {
         <Separator className="mb-10" />
 
         <section>
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
-            Available Reads
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Available Reads
+              {urlParams.category && (
+                <span className="ml-2 normal-case tracking-normal">
+                  — {urlParams.category}
+                </span>
+              )}
+            </h2>
+            {urlParams.category && (
+              <a
+                href="/"
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4 transition-colors"
+              >
+                Show all
+              </a>
+            )}
+          </div>
           <div className="grid gap-4">
-            {precompiles.map((config) => (
-              <PrecompileCard
-                key={config.functionName}
-                config={config}
-                publicClient={publicClient}
-              />
-            ))}
+            {filteredPrecompiles.map((config) => {
+              const isTarget = urlParams.fn === config.functionName;
+              return (
+                <PrecompileCard
+                  key={config.functionName}
+                  config={config}
+                  publicClient={publicClient}
+                  initialValues={isTarget ? urlParams.inputValues : undefined}
+                  autoExecute={isTarget}
+                  targetRef={isTarget ? targetCardRef : undefined}
+                />
+              );
+            })}
           </div>
         </section>
 
