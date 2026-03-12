@@ -2,11 +2,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type RefreshInterval = 5 | 10 | 30;
 
-const REFRESH_INTERVALS: RefreshInterval[] = [5, 10, 30];
+export const REFRESH_INTERVALS: { value: RefreshInterval; label: string }[] = [
+  { value: 5, label: "5s" },
+  { value: 10, label: "10s" },
+  { value: 30, label: "30s" },
+];
 
 interface UseAutoRefreshOptions {
-  onRefresh: () => Promise<void>;
+  /** Whether auto-refresh is allowed (e.g., after first query with valid inputs) */
   enabled: boolean;
+  /** The callback to invoke on each refresh tick */
+  onRefresh: () => Promise<void>;
+  /** Polling interval in seconds */
   interval: RefreshInterval;
 }
 
@@ -14,134 +21,117 @@ interface UseAutoRefreshReturn {
   /** Whether auto-refresh is currently active */
   isActive: boolean;
   /** Toggle auto-refresh on/off */
-  setActive: (active: boolean) => void;
-  /** Current interval in seconds */
-  interval: RefreshInterval;
-  /** Set the refresh interval */
-  setInterval: (interval: RefreshInterval) => void;
-  /** Available interval options */
-  intervals: readonly RefreshInterval[];
-  /** Timestamp of last successful refresh (null if never refreshed) */
-  lastUpdated: number | null;
-  /** Seconds since last update (null if never refreshed) */
+  toggle: () => void;
+  /** Stop auto-refresh */
+  stop: () => void;
+  /** Seconds since last successful refresh, or null if never refreshed */
   secondsAgo: number | null;
+  /** Whether a background refresh is currently in progress */
+  isRefreshing: boolean;
 }
 
 export function useAutoRefresh({
-  onRefresh,
   enabled,
+  onRefresh,
   interval,
 }: UseAutoRefreshOptions): UseAutoRefreshReturn {
   const [isActive, setIsActive] = useState(false);
-  const [currentInterval, setCurrentInterval] =
-    useState<RefreshInterval>(interval);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [secondsAgo, setSecondsAgo] = useState<number | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const isRefreshingRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onRefreshRef = useRef(onRefresh);
 
-  // Keep the callback ref current
+  // Keep the callback ref up to date
   onRefreshRef.current = onRefresh;
 
-  const clearTimers = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+  // Stop if conditions are no longer met
+  useEffect(() => {
+    if (!enabled && isActive) {
+      setIsActive(false);
     }
-    if (tickRef.current) {
-      clearInterval(tickRef.current);
-      tickRef.current = null;
+  }, [enabled, isActive]);
+
+  const doRefresh = useCallback(async () => {
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
+    setIsRefreshing(true);
+    try {
+      await onRefreshRef.current();
+      setLastUpdated(Date.now());
+    } finally {
+      isRefreshingRef.current = false;
+      setIsRefreshing(false);
     }
   }, []);
 
-  // Update "seconds ago" every second
+  // Main polling interval
   useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    if (!isActive) return;
+
+    intervalRef.current = setInterval(() => {
+      doRefresh();
+    }, interval * 1000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [isActive, interval, doRefresh]);
+
+  // Ticker to update "seconds ago" display every second
+  useEffect(() => {
+    if (tickerRef.current) {
+      clearInterval(tickerRef.current);
+      tickerRef.current = null;
+    }
+
     if (lastUpdated === null) {
       setSecondsAgo(null);
       return;
     }
 
-    const update = () => {
+    const updateSecondsAgo = () => {
       setSecondsAgo(Math.floor((Date.now() - lastUpdated) / 1000));
     };
 
-    update();
-    tickRef.current = setInterval(update, 1000);
+    updateSecondsAgo();
+    tickerRef.current = setInterval(updateSecondsAgo, 1000);
 
     return () => {
-      if (tickRef.current) {
-        clearInterval(tickRef.current);
-        tickRef.current = null;
+      if (tickerRef.current) {
+        clearInterval(tickerRef.current);
+        tickerRef.current = null;
       }
     };
   }, [lastUpdated]);
 
-  // Main polling effect
+  // Pause when tab is hidden, resume when visible
   useEffect(() => {
-    if (!isActive || !enabled) {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      return;
-    }
-
-    const doRefresh = async () => {
-      if (isRefreshingRef.current) return;
-
-      // Pause when tab is not visible
-      if (document.visibilityState === "hidden") return;
-
-      isRefreshingRef.current = true;
-      try {
-        await onRefreshRef.current();
-        setLastUpdated(Date.now());
-      } finally {
-        isRefreshingRef.current = false;
-      }
-    };
-
-    timerRef.current = setInterval(doRefresh, currentInterval * 1000);
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [isActive, enabled, currentInterval, clearTimers]);
-
-  // Stop auto-refresh when tab becomes hidden, resume when visible
-  useEffect(() => {
-    if (!isActive || !enabled) return;
+    if (!isActive) return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
         }
       } else {
-        // Re-start polling when tab becomes visible again
-        const doRefresh = async () => {
-          if (isRefreshingRef.current) return;
-          isRefreshingRef.current = true;
-          try {
-            await onRefreshRef.current();
-            setLastUpdated(Date.now());
-          } finally {
-            isRefreshingRef.current = false;
-          }
-        };
-
-        // Immediately refresh on becoming visible
+        // Tab became visible again — refresh immediately and restart interval
         doRefresh();
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-        }
-        timerRef.current = setInterval(doRefresh, currentInterval * 1000);
+        intervalRef.current = setInterval(() => {
+          doRefresh();
+        }, interval * 1000);
       }
     };
 
@@ -149,18 +139,28 @@ export function useAutoRefresh({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [isActive, enabled, currentInterval, clearTimers]);
+  }, [isActive, interval, doRefresh]);
 
-  // Clean up on unmount
-  useEffect(() => clearTimers, [clearTimers]);
+  const toggle = useCallback(() => {
+    setIsActive((prev) => {
+      if (!prev && enabled) {
+        // Starting auto-refresh — do an immediate refresh
+        doRefresh();
+        return true;
+      }
+      return !prev;
+    });
+  }, [enabled, doRefresh]);
+
+  const stop = useCallback(() => {
+    setIsActive(false);
+  }, []);
 
   return {
     isActive,
-    setActive: setIsActive,
-    interval: currentInterval,
-    setInterval: setCurrentInterval,
-    intervals: REFRESH_INTERVALS,
-    lastUpdated,
+    toggle,
+    stop,
     secondsAgo,
+    isRefreshing,
   };
 }

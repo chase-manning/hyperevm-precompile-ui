@@ -1,14 +1,22 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
-import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
+import { Sun, Moon, Github, Settings, RotateCcw, Search } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import { useRpcHealth } from "@/hooks/use-rpc-health";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
+import { validateRpcUrl } from "@/lib/validation";
 import {
   PrecompileCard,
   type PrecompileConfig,
 } from "@/components/PrecompileCard";
+import { RpcStatusIndicator } from "@/components/RpcStatusIndicator";
 import {
   safeGetItem,
   safeSetItem,
@@ -36,8 +44,11 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). This is the HyperCore user address to check.",
+        tooltip: {
+          description: "The HyperCore user address to check.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
     ],
   },
@@ -53,8 +64,11 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The user whose withdrawable balance you want to query.",
+        tooltip: {
+          description: "The user whose withdrawable balance you want to query.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
     ],
   },
@@ -70,8 +84,11 @@ const precompiles: PrecompileConfig[] = [
         label: "Perp Index",
         placeholder: "e.g. 0 for BTC, 1 for ETH",
         type: "uint32",
-        tooltip:
-          "Perpetual asset index (uint32, 0 to 4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
+        tooltip: {
+          description: "Perpetual asset index identifying the market.",
+          format: "uint32 (0 to 4,294,967,295)",
+          examples: ["0 = BTC", "1 = ETH", "2 = ARB", "3 = DOGE"],
+        },
       },
     ],
   },
@@ -87,8 +104,11 @@ const precompiles: PrecompileConfig[] = [
         label: "Perp Index",
         placeholder: "e.g. 0 for BTC, 1 for ETH",
         type: "uint32",
-        tooltip:
-          "Perpetual asset index (uint32, 0 to 4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
+        tooltip: {
+          description: "Perpetual asset index identifying the market.",
+          format: "uint32 (0 to 4,294,967,295)",
+          examples: ["0 = BTC", "1 = ETH", "2 = ARB", "3 = DOGE"],
+        },
       },
     ],
   },
@@ -104,8 +124,11 @@ const precompiles: PrecompileConfig[] = [
         label: "Asset Index",
         placeholder: "e.g. 0",
         type: "uint64",
-        tooltip:
-          "Asset index for the perpetual market (uint64). Common values: 0 = BTC, 1 = ETH.",
+        tooltip: {
+          description: "Asset index for the perpetual market.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+          examples: ["0 = BTC", "1 = ETH"],
+        },
       },
     ],
   },
@@ -121,8 +144,11 @@ const precompiles: PrecompileConfig[] = [
         label: "Perp Index",
         placeholder: "e.g. 0",
         type: "uint32",
-        tooltip:
-          "Perpetual asset index (uint32, 0 to 4294967295). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
+        tooltip: {
+          description: "Perpetual asset index identifying the market.",
+          format: "uint32 (0 to 4,294,967,295)",
+          examples: ["0 = BTC", "1 = ETH", "2 = ARB", "3 = DOGE"],
+        },
       },
     ],
   },
@@ -138,16 +164,22 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The trader whose position you want to query.",
+        tooltip: {
+          description: "The trader whose position you want to query.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
       {
         name: "perp",
         label: "Perp Index",
         placeholder: "e.g. 0",
         type: "uint16",
-        tooltip:
-          "Perpetual asset index (uint16, 0 to 65535). Common values: 0 = BTC, 1 = ETH, 2 = ARB, 3 = DOGE.",
+        tooltip: {
+          description: "Perpetual asset index identifying the market.",
+          format: "uint16 (0 to 65,535)",
+          examples: ["0 = BTC", "1 = ETH", "2 = ARB", "3 = DOGE"],
+        },
       },
     ],
   },
@@ -163,16 +195,23 @@ const precompiles: PrecompileConfig[] = [
         label: "Perp Dex Index",
         placeholder: "e.g. 0",
         type: "uint32",
-        tooltip:
-          "Perp DEX index (uint32, 0 to 4294967295). Use 0 for the default Hyperliquid perp DEX.",
+        tooltip: {
+          description:
+            "The perp DEX to query. Use 0 for the default Hyperliquid perp DEX.",
+          format: "uint32 (0 to 4,294,967,295)",
+          examples: ["0 = Default Hyperliquid perp DEX"],
+        },
       },
       {
         name: "user",
         label: "User Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The user whose margin summary you want to view.",
+        tooltip: {
+          description: "The user whose margin summary you want to view.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
     ],
   },
@@ -188,16 +227,23 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The user whose spot balance you want to check.",
+        tooltip: {
+          description: "The user whose spot balance you want to check.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
       {
         name: "token",
         label: "Token Index",
         placeholder: "e.g. 0",
         type: "uint64",
-        tooltip:
-          "Token index on HyperCore (uint64). Use 0 for USDC. Other token indices can be looked up via Token Info.",
+        tooltip: {
+          description:
+            "Token index on HyperCore. Other indices can be looked up via Token Info.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+          examples: ["0 = USDC"],
+        },
       },
     ],
   },
@@ -213,8 +259,11 @@ const precompiles: PrecompileConfig[] = [
         label: "Spot Index",
         placeholder: "e.g. 0",
         type: "uint64",
-        tooltip:
-          "Spot market index (uint64). Identifies a specific spot trading pair on Hyperliquid.",
+        tooltip: {
+          description:
+            "Identifies a specific spot trading pair on Hyperliquid.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+        },
       },
     ],
   },
@@ -230,8 +279,11 @@ const precompiles: PrecompileConfig[] = [
         label: "Spot Index",
         placeholder: "e.g. 0",
         type: "uint64",
-        tooltip:
-          "Spot market index (uint64). Identifies a specific spot trading pair on Hyperliquid.",
+        tooltip: {
+          description:
+            "Identifies a specific spot trading pair on Hyperliquid.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+        },
       },
     ],
   },
@@ -247,8 +299,11 @@ const precompiles: PrecompileConfig[] = [
         label: "Token Index",
         placeholder: "e.g. 0",
         type: "uint64",
-        tooltip:
-          "Token index on HyperCore (uint64). Use 0 for USDC. Each token has a unique index on the platform.",
+        tooltip: {
+          description: "Each token has a unique index on the platform.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+          examples: ["0 = USDC"],
+        },
       },
     ],
   },
@@ -264,8 +319,11 @@ const precompiles: PrecompileConfig[] = [
         label: "Token Index",
         placeholder: "e.g. 0",
         type: "uint64",
-        tooltip:
-          "Token index on HyperCore (uint64). Use 0 for USDC. Each token has a unique index on the platform.",
+        tooltip: {
+          description: "Each token has a unique index on the platform.",
+          format: "uint64 (0 to 18,446,744,073,709,551,615)",
+          examples: ["0 = USDC"],
+        },
       },
     ],
   },
@@ -281,16 +339,22 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The user whose vault equity you want to query.",
+        tooltip: {
+          description: "The user whose vault equity you want to query.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
       {
         name: "vault",
         label: "Vault Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The vault contract address to query equity for.",
+        tooltip: {
+          description: "The vault contract address to query equity for.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
     ],
   },
@@ -306,8 +370,12 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The delegator whose staking delegations you want to view.",
+        tooltip: {
+          description:
+            "The delegator whose staking delegations you want to view.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
     ],
   },
@@ -323,12 +391,60 @@ const precompiles: PrecompileConfig[] = [
         label: "User Address",
         placeholder: "0x...",
         type: "address",
-        tooltip:
-          "Ethereum address starting with 0x (42 characters). The delegator whose staking summary you want to view.",
+        tooltip: {
+          description: "The delegator whose staking summary you want to view.",
+          format: "Ethereum address starting with 0x (42 hex characters)",
+          examples: ["0x1234...abcd"],
+        },
       },
     ],
   },
 ];
+
+const CATEGORIES = [
+  "All",
+  "System",
+  "User",
+  "Perps",
+  "Spot",
+  "Vaults",
+  "Staking",
+] as const;
+
+type Category = (typeof CATEGORIES)[number];
+
+function getCategoryFromUrl(): Category {
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get("category");
+  if (category && CATEGORIES.includes(category as Category)) {
+    return category as Category;
+  }
+  return "All";
+}
+
+function getSearchFromUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("search") || "";
+}
+
+function updateUrlParams(category: Category, search: string) {
+  const params = new URLSearchParams(window.location.search);
+  if (category !== "All") {
+    params.set("category", category);
+  } else {
+    params.delete("category");
+  }
+  if (search.trim()) {
+    params.set("search", search.trim());
+  } else {
+    params.delete("search");
+  }
+  const query = params.toString();
+  const newUrl = query
+    ? `${window.location.pathname}?${query}`
+    : window.location.pathname;
+  window.history.replaceState(null, "", newUrl);
+}
 
 function getStoredRpc(): string {
   return safeGetItem(STORAGE_KEYS.CUSTOM_RPC_URL) || "";
@@ -338,9 +454,19 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
+  const [searchQuery, setSearchQuery] = useState(getSearchFromUrl);
+  const [activeCategory, setActiveCategory] =
+    useState<Category>(getCategoryFromUrl);
+
+  const rpcError = useMemo(() => validateRpcUrl(customRpc), [customRpc]);
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
+    const error = validateRpcUrl(value);
+    if (error) {
+      // Don't save invalid URLs to localStorage
+      return;
+    }
     if (value.trim()) {
       safeSetItem(STORAGE_KEYS.CUSTOM_RPC_URL, value.trim());
     } else {
@@ -349,11 +475,53 @@ function App() {
   }, []);
 
   const publicClient = useMemo(
-    () => makePublicClient(customRpc.trim() || undefined),
-    [customRpc]
+    () =>
+      makePublicClient(
+        !rpcError && customRpc.trim() ? customRpc.trim() : undefined
+      ),
+    [customRpc, rpcError]
   );
 
-  const isCustomRpc = customRpc.trim().length > 0;
+  const isCustomRpc = customRpc.trim().length > 0 && !rpcError;
+
+  const {
+    status: rpcStatus,
+    blockNumber,
+    latencyMs,
+    recheck,
+  } = useRpcHealth(publicClient);
+
+  // Sync filter state to URL
+  useEffect(() => {
+    updateUrlParams(activeCategory, searchQuery);
+  }, [activeCategory, searchQuery]);
+
+  const filteredPrecompiles = useMemo(() => {
+    return precompiles.filter((config) => {
+      // Category filter
+      if (activeCategory !== "All" && config.badge !== activeCategory) {
+        return false;
+      }
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        return (
+          config.title.toLowerCase().includes(query) ||
+          config.description.toLowerCase().includes(query) ||
+          config.functionName.toLowerCase().includes(query)
+        );
+      }
+      return true;
+    });
+  }, [activeCategory, searchQuery]);
+
+  const handleCategoryChange = useCallback((category: Category) => {
+    setActiveCategory(category);
+  }, []);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -370,39 +538,58 @@ function App() {
               Hyperliquid Precompile Explorer
             </h1>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowSettings((prev) => !prev)}
-                className={cn(
-                  "rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer",
-                  isCustomRpc && "text-primary border-primary/50"
-                )}
-                aria-label="Toggle settings"
-                aria-expanded={showSettings}
-                aria-controls="settings-panel"
-                title="Toggle settings"
-              >
-                <Settings className="h-4 w-4" />
-              </button>
-              <button
-                onClick={toggleTheme}
-                className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                aria-label={
-                  theme === "dark"
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setShowSettings((prev) => !prev)}
+                    className={cn(
+                      "relative rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer",
+                      isCustomRpc && "text-primary border-primary/50"
+                    )}
+                    aria-label="Toggle settings"
+                    aria-expanded={showSettings}
+                    aria-controls="settings-panel"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span
+                      className={cn(
+                        "absolute -top-0.5 -right-0.5 block h-2 w-2 rounded-full border border-background",
+                        rpcStatus === "connected" && "bg-green-500",
+                        rpcStatus === "slow" && "bg-yellow-400",
+                        rpcStatus === "unreachable" && "bg-destructive",
+                        rpcStatus === "checking" &&
+                          "bg-yellow-400 animate-pulse"
+                      )}
+                      aria-label={`RPC status: ${rpcStatus}`}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Toggle settings</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={toggleTheme}
+                    className="rounded-md border border-border p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                    aria-label={
+                      theme === "dark"
+                        ? "Switch to light mode"
+                        : "Switch to dark mode"
+                    }
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="h-4 w-4" />
+                    ) : (
+                      <Moon className="h-4 w-4" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {theme === "dark"
                     ? "Switch to light mode"
-                    : "Switch to dark mode"
-                }
-                title={
-                  theme === "dark"
-                    ? "Switch to light mode"
-                    : "Switch to dark mode"
-                }
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-4 w-4" />
-                ) : (
-                  <Moon className="h-4 w-4" />
-                )}
-              </button>
+                    : "Switch to dark mode"}
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
           <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
@@ -445,13 +632,55 @@ function App() {
                 id="custom-rpc"
                 placeholder={DEFAULT_RPC_URL}
                 value={customRpc}
+                aria-invalid={rpcError ? true : undefined}
+                aria-describedby={rpcError ? "rpc-error" : undefined}
                 onChange={(e) => handleRpcChange(e.target.value)}
               />
-              <p className="mt-2 text-xs text-muted-foreground">
-                {isCustomRpc
-                  ? `Using custom RPC: ${customRpc.trim()}`
-                  : `Using default RPC: ${DEFAULT_RPC_URL}`}
-              </p>
+              {rpcError ? (
+                <p
+                  id="rpc-error"
+                  className="mt-2 text-xs text-destructive"
+                  role="alert"
+                >
+                  {rpcError}
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {isCustomRpc
+                      ? `Using custom RPC: ${customRpc.trim()}`
+                      : `Using default RPC: ${DEFAULT_RPC_URL}`}
+                  </p>
+                  <RpcStatusIndicator
+                    status={rpcStatus}
+                    blockNumber={blockNumber}
+                    latencyMs={latencyMs}
+                  />
+                  {isCustomRpc && rpcStatus === "unreachable" && (
+                    <div
+                      className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                      role="alert"
+                    >
+                      <span>
+                        Custom RPC is unreachable. Check the URL or{" "}
+                        <button
+                          onClick={() => handleRpcChange("")}
+                          className="underline underline-offset-2 font-medium hover:text-destructive/80 transition-colors cursor-pointer"
+                        >
+                          revert to default
+                        </button>
+                        .
+                      </span>
+                      <button
+                        onClick={recheck}
+                        className="ml-auto shrink-0 underline underline-offset-2 font-medium hover:text-destructive/80 transition-colors cursor-pointer"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </header>
@@ -462,15 +691,75 @@ function App() {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Available Reads
           </h2>
-          <div className="grid gap-4">
-            {precompiles.map((config) => (
-              <PrecompileCard
-                key={config.functionName}
-                config={config}
-                publicClient={publicClient}
+
+          <div className="mb-6 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search precompiles..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-9"
+                aria-label="Search precompiles by name or description"
               />
-            ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {CATEGORIES.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className={cn(
+                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer",
+                    activeCategory === category
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  )}
+                  aria-pressed={activeCategory === category}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Showing {filteredPrecompiles.length} of {precompiles.length}{" "}
+              precompile{precompiles.length !== 1 ? "s" : ""}
+            </p>
           </div>
+
+          {filteredPrecompiles.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredPrecompiles.map((config) => (
+                <PrecompileCard
+                  key={config.functionName}
+                  config={config}
+                  publicClient={publicClient}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-8 text-center">
+              <p className="text-muted-foreground">
+                No precompiles match your{" "}
+                {searchQuery.trim() && activeCategory !== "All"
+                  ? "search and filter"
+                  : searchQuery.trim()
+                    ? "search"
+                    : "filter"}
+                .
+              </p>
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setActiveCategory("All");
+                }}
+                className="mt-3 text-sm text-primary hover:text-primary/80 underline underline-offset-4 transition-colors cursor-pointer"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
         </section>
 
         <Separator className="mt-10 mb-6" />
