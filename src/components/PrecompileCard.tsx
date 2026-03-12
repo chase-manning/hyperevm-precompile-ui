@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
+import { validateInput } from "@/lib/validation";
 import { Info } from "lucide-react";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
@@ -45,8 +46,18 @@ export interface PrecompileConfig {
 function parseArg(value: string, type: InputConfig["type"]): unknown {
   const trimmed = value.trim();
   if (type === "address") return trimmed as `0x${string}`;
-  if (type === "uint64") return BigInt(trimmed);
-  return Number(trimmed);
+  if (type === "uint64") {
+    try {
+      return BigInt(trimmed);
+    } catch {
+      throw new Error(`Invalid uint64 value: "${trimmed}"`);
+    }
+  }
+  const num = Number(trimmed);
+  if (Number.isNaN(num)) {
+    throw new Error(`Invalid number: "${trimmed}"`);
+  }
+  return num;
 }
 
 interface PrecompileCardProps {
@@ -63,6 +74,31 @@ export const PrecompileCard = memo(function PrecompileCard({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const validationErrors = useMemo(() => {
+    const errors: Record<string, string | null> = {};
+    for (const input of config.inputs) {
+      errors[input.name] = validateInput(values[input.name] || "", input.type);
+    }
+    return errors;
+  }, [values, config.inputs]);
+
+  const hasValidationErrors = Object.values(validationErrors).some(
+    (err) => err !== null
+  );
+
+  const allInputsFilled = config.inputs.every(
+    (input) => (values[input.name] || "").trim() !== ""
+  );
+  const canQuery =
+    (config.inputs.length === 0 || allInputsFilled) && !hasValidationErrors;
+
+  const disabledReason = !allInputsFilled
+    ? "Fill in all fields before querying"
+    : hasValidationErrors
+      ? "Fix validation errors before querying"
+      : null;
 
   const handleQuery = useCallback(async () => {
     setLoading(true);
@@ -102,11 +138,6 @@ export const PrecompileCard = memo(function PrecompileCard({
     }
   }, [config.inputs, config.functionName, publicClient, values]);
 
-  const allInputsFilled = config.inputs.every(
-    (input) => (values[input.name] || "").trim() !== ""
-  );
-  const canQuery = config.inputs.length === 0 || allInputsFilled;
-
   return (
     <Card>
       <CardHeader>
@@ -118,54 +149,95 @@ export const PrecompileCard = memo(function PrecompileCard({
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {config.inputs.map((input) => (
-            <div key={input.name} className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <Label htmlFor={`${config.functionName}-${input.name}`}>
-                  {input.label}
-                </Label>
-                {input.tooltip && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground transition-colors cursor-help"
-                        aria-label={`Info about ${input.label}`}
-                      >
-                        <Info className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>{input.tooltip}</TooltipContent>
-                  </Tooltip>
+          {config.inputs.map((input) => {
+            const fieldError = validationErrors[input.name];
+            const showError = touched[input.name] && fieldError;
+
+            return (
+              <div key={input.name} className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor={`${config.functionName}-${input.name}`}>
+                    {input.label}
+                  </Label>
+                  {input.tooltip && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground transition-colors cursor-help"
+                          aria-label={`Info about ${input.label}`}
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{input.tooltip}</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+                <Input
+                  id={`${config.functionName}-${input.name}`}
+                  placeholder={input.placeholder}
+                  value={values[input.name] || ""}
+                  aria-invalid={showError ? true : undefined}
+                  aria-describedby={
+                    showError
+                      ? `${config.functionName}-${input.name}-error`
+                      : undefined
+                  }
+                  onChange={(e) =>
+                    setValues((prev) => ({
+                      ...prev,
+                      [input.name]: e.target.value,
+                    }))
+                  }
+                  onBlur={() =>
+                    setTouched((prev) => ({ ...prev, [input.name]: true }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && canQuery && !loading) {
+                      handleQuery();
+                    }
+                  }}
+                />
+                {showError && (
+                  <p
+                    id={`${config.functionName}-${input.name}-error`}
+                    className="text-xs text-destructive"
+                    role="alert"
+                  >
+                    {fieldError}
+                  </p>
                 )}
               </div>
-              <Input
-                id={`${config.functionName}-${input.name}`}
-                placeholder={input.placeholder}
-                value={values[input.name] || ""}
-                onChange={(e) =>
-                  setValues((prev) => ({
-                    ...prev,
-                    [input.name]: e.target.value,
-                  }))
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && canQuery && !loading) {
-                    handleQuery();
-                  }
-                }}
-              />
-            </div>
-          ))}
+            );
+          })}
 
-          <Button
-            onClick={handleQuery}
-            disabled={loading || !canQuery}
-            className="w-full"
-            size="sm"
-          >
-            {loading ? "Querying..." : "Query"}
-          </Button>
+          {disabledReason ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={0} className="w-full block">
+                  <Button
+                    onClick={handleQuery}
+                    disabled={loading || !canQuery}
+                    className="w-full"
+                    size="sm"
+                  >
+                    {loading ? "Querying..." : "Query"}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{disabledReason}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <Button
+              onClick={handleQuery}
+              disabled={loading || !canQuery}
+              className="w-full"
+              size="sm"
+            >
+              {loading ? "Querying..." : "Query"}
+            </Button>
+          )}
 
           {error && (
             <div
