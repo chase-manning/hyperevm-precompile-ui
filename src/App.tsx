@@ -8,6 +8,7 @@ import { makePublicClient } from "@/config/client";
 import { cn } from "@/lib/utils";
 import { validateRpcUrl } from "@/lib/validation";
 import { PrecompileCard } from "@/components/PrecompileCard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppHeader } from "@/components/AppHeader";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { AppFooter } from "@/components/AppFooter";
@@ -176,140 +177,149 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none"
-      >
-        Skip to content
-      </a>
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <header className="mb-12">
-          <AppHeader
-            theme={theme}
-            toggleTheme={toggleTheme}
-            showSettings={showSettings}
-            setShowSettings={setShowSettings}
-            isCustomRpc={isCustomRpc}
-            rpcStatus={rpcStatus}
-          />
-          <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
-            A lightweight interface for reading on chain data from{" "}
-            <a
-              href="https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/hyperevm/interacting-with-hypercore"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-foreground underline underline-offset-4 hover:text-primary transition-colors"
-            >
-              Hyperliquid precompiles
-            </a>
-            . Query oracle prices, positions, balances, and more directly from
-            HyperCore, with results guaranteed to match the latest L1 state.
-          </p>
-
-          {showSettings && (
-            <SettingsPanel
-              customRpc={customRpc}
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none"
+        >
+          Skip to content
+        </a>
+        <div className="mx-auto max-w-3xl px-6 py-16">
+          <header className="mb-12">
+            <AppHeader
+              theme={theme}
+              toggleTheme={toggleTheme}
+              showSettings={showSettings}
+              setShowSettings={setShowSettings}
               isCustomRpc={isCustomRpc}
-              rpcError={rpcError}
               rpcStatus={rpcStatus}
-              blockNumber={blockNumber}
-              latencyMs={latencyMs}
-              handleRpcChange={handleRpcChange}
-              recheck={recheck}
             />
-          )}
-        </header>
-
-        <Separator className="mb-10" />
-
-        <section id="main-content">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
-            Available Reads
-          </h2>
-
-          <div className="mb-6 space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                placeholder="Search precompiles..."
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-9"
-                aria-label="Search precompiles by name or description"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {CATEGORIES.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => handleCategoryChange(category)}
-                  className={cn(
-                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer",
-                    activeCategory === category
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  )}
-                  aria-pressed={activeCategory === category}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Showing {filteredPrecompiles.length} of {precompiles.length}{" "}
-              precompile{precompiles.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-
-          {filteredPrecompiles.length > 0 ? (
-            <div className="grid gap-4">
-              {filteredPrecompiles.map((config) => (
-                <PrecompileCard
-                  key={config.functionName}
-                  ref={(el) => {
-                    cardRefs.current[config.functionName] = el;
-                  }}
-                  config={config}
-                  publicClient={publicClient}
-                  initialValues={
-                    targetFn === config.functionName ? initialValues : undefined
-                  }
-                  autoExecute={targetFn === config.functionName}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-lg border border-border bg-card p-8 text-center">
-              <p className="text-muted-foreground">
-                No precompiles match your{" "}
-                {searchQuery.trim() && activeCategory !== "All"
-                  ? "search and filter"
-                  : searchQuery.trim()
-                    ? "search"
-                    : "filter"}
-                .
-              </p>
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setActiveCategory("All");
-                }}
-                className="mt-3 text-sm text-primary hover:text-primary/80 underline underline-offset-4 transition-colors cursor-pointer"
+            <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">
+              A lightweight interface for reading on chain data from{" "}
+              <a
+                href="https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/hyperevm/interacting-with-hypercore"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-foreground underline underline-offset-4 hover:text-primary transition-colors"
               >
-                Clear filters
-              </button>
+                Hyperliquid precompiles
+              </a>
+              . Query oracle prices, positions, balances, and more directly from
+              HyperCore, with results guaranteed to match the latest L1 state.
+            </p>
+
+            {showSettings && (
+              <SettingsPanel
+                customRpc={customRpc}
+                isCustomRpc={isCustomRpc}
+                rpcError={rpcError}
+                rpcStatus={rpcStatus}
+                blockNumber={blockNumber}
+                latencyMs={latencyMs}
+                handleRpcChange={handleRpcChange}
+                recheck={recheck}
+              />
+            )}
+          </header>
+
+          <Separator className="mb-10" />
+
+          <section id="main-content">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
+              Available Reads
+            </h2>
+
+            <div className="mb-6 space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="Search precompiles..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="pl-9"
+                  aria-label="Search precompiles by name or description"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {CATEGORIES.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => handleCategoryChange(category)}
+                    className={cn(
+                      "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer",
+                      activeCategory === category
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    )}
+                    aria-pressed={activeCategory === category}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Showing {filteredPrecompiles.length} of {precompiles.length}{" "}
+                precompile{precompiles.length !== 1 ? "s" : ""}
+              </p>
             </div>
-          )}
-        </section>
 
-        <Separator className="mt-10 mb-6" />
+            {filteredPrecompiles.length > 0 ? (
+              <div className="grid gap-4">
+                {filteredPrecompiles.map((config) => (
+                  <ErrorBoundary
+                    key={config.functionName}
+                    fallbackTitle={`${config.title} failed to render`}
+                    fallbackDescription="An error occurred while rendering this precompile card."
+                  >
+                    <PrecompileCard
+                      ref={(el) => {
+                        cardRefs.current[config.functionName] = el;
+                      }}
+                      config={config}
+                      publicClient={publicClient}
+                      initialValues={
+                        targetFn === config.functionName
+                          ? initialValues
+                          : undefined
+                      }
+                      autoExecute={targetFn === config.functionName}
+                    />
+                  </ErrorBoundary>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-card p-8 text-center">
+                <p className="text-muted-foreground">
+                  No precompiles match your{" "}
+                  {searchQuery.trim() && activeCategory !== "All"
+                    ? "search and filter"
+                    : searchQuery.trim()
+                      ? "search"
+                      : "filter"}
+                  .
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setActiveCategory("All");
+                  }}
+                  className="mt-3 text-sm text-primary hover:text-primary/80 underline underline-offset-4 transition-colors cursor-pointer"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
+          </section>
 
-        <AppFooter />
+          <Separator className="mt-10 mb-6" />
+
+          <AppFooter />
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }
 
