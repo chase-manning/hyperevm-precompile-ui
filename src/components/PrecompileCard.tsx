@@ -369,6 +369,11 @@ export const PrecompileCard = memo(function PrecompileCard({
               <div className="pr-6">
                 <ResultDisplay data={result} />
               </div>
+              {autoRefresh.isActive && autoRefresh.secondsAgo !== null && (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Last updated: {formatSecondsAgo(autoRefresh.secondsAgo)}
+                </p>
+              )}
             </div>
           )}
         </div>
