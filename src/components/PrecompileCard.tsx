@@ -12,8 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Tooltip,
-  TooltipContent,
   TooltipTrigger,
+  TooltipContent,
 } from "@/components/ui/tooltip";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
@@ -145,10 +145,10 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-muted-foreground hover:text-foreground transition-colors cursor-help"
                         aria-label={`Info about ${input.label}`}
                       >
-                        <Info className="size-3.5" />
+                        <Info className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
