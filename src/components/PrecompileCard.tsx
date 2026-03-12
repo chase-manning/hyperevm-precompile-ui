@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import {
   Card,
   CardContent,
@@ -54,14 +54,17 @@ interface PrecompileCardProps {
   publicClient: PublicClient;
 }
 
-export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
+export const PrecompileCard = memo(function PrecompileCard({
+  config,
+  publicClient,
+}: PrecompileCardProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
 
-  const handleQuery = async () => {
+  const handleQuery = useCallback(async () => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -97,7 +100,7 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [config.inputs, config.functionName, publicClient, values]);
 
   const allInputsFilled = config.inputs.every(
     (input) => (values[input.name] || "").trim() !== ""
@@ -183,4 +186,4 @@ export function PrecompileCard({ config, publicClient }: PrecompileCardProps) {
       </CardContent>
     </Card>
   );
-}
+});
