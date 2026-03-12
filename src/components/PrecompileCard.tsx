@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
-import { Info } from "lucide-react";
+import { Info, Link } from "lucide-react";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
 
@@ -52,17 +52,38 @@ function parseArg(value: string, type: InputConfig["type"]): unknown {
 interface PrecompileCardProps {
   config: PrecompileConfig;
   publicClient: PublicClient;
+  initialValues?: Record<string, string>;
+  autoExecute?: boolean;
+  targeted?: boolean;
+}
+
+function buildShareUrl(config: PrecompileConfig, values: Record<string, string>): string {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.searchParams.set("fn", config.functionName);
+  for (const input of config.inputs) {
+    const val = (values[input.name] || "").trim();
+    if (val) {
+      url.searchParams.set(input.name, val);
+    }
+  }
+  return url.toString();
 }
 
 export const PrecompileCard = memo(function PrecompileCard({
   config,
   publicClient,
+  initialValues,
+  autoExecute,
+  targeted,
 }: PrecompileCardProps) {
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, string>>(initialValues ?? {});
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [hasQueried, setHasQueried] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const handleQuery = useCallback(async () => {
     setLoading(true);
@@ -102,17 +123,56 @@ export const PrecompileCard = memo(function PrecompileCard({
     }
   }, [config.inputs, config.functionName, publicClient, values]);
 
+  useEffect(() => {
+    if (targeted && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [targeted]);
+
+  const hasAutoExecuted = useRef(false);
+  useEffect(() => {
+    if (autoExecute && !hasAutoExecuted.current) {
+      hasAutoExecuted.current = true;
+      handleQuery();
+    }
+  }, [autoExecute, handleQuery]);
+
+  const handleShare = useCallback(() => {
+    const url = buildShareUrl(config, values);
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [config, values]);
+
   const allInputsFilled = config.inputs.every(
     (input) => (values[input.name] || "").trim() !== ""
   );
   const canQuery = config.inputs.length === 0 || allInputsFilled;
 
   return (
-    <Card>
+    <Card ref={cardRef} className={targeted ? "ring-2 ring-primary" : undefined}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">{config.title}</CardTitle>
-          <Badge variant="secondary">{config.badge}</Badge>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  aria-label={`Copy link to ${config.title}`}
+                >
+                  <Link className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {copied ? "Copied!" : "Copy share link"}
+              </TooltipContent>
+            </Tooltip>
+            <Badge variant="secondary">{config.badge}</Badge>
+          </div>
         </div>
         <CardDescription>{config.description}</CardDescription>
       </CardHeader>

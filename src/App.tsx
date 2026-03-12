@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
@@ -330,10 +331,42 @@ function getStoredRpc(): string {
   return safeGetItem(STORAGE_KEYS.CUSTOM_RPC_URL) || "";
 }
 
+const CATEGORIES = ["System", "User", "Perps", "Spot", "Vaults", "Staking"];
+
+function getUrlParams(): {
+  fn: string | null;
+  category: string | null;
+  inputValues: Record<string, string>;
+} {
+  const params = new URLSearchParams(window.location.search);
+  const fn = params.get("fn");
+  const category = params.get("category");
+  const inputValues: Record<string, string> = {};
+
+  if (fn) {
+    const config = precompiles.find((p) => p.functionName === fn);
+    if (config) {
+      for (const input of config.inputs) {
+        const val = params.get(input.name);
+        if (val) {
+          inputValues[input.name] = val;
+        }
+      }
+    }
+  }
+
+  return { fn, category, inputValues };
+}
+
 function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
+
+  const urlParams = useMemo(() => getUrlParams(), []);
+  const [activeCategory, setActiveCategory] = useState<string | null>(
+    urlParams.category
+  );
 
   const handleRpcChange = useCallback((value: string) => {
     setCustomRpc(value);
@@ -348,6 +381,29 @@ function App() {
     () => makePublicClient(customRpc.trim() || undefined),
     [customRpc]
   );
+
+  const handleCategoryChange = useCallback(
+    (category: string | null) => {
+      setActiveCategory(category);
+      const url = new URL(window.location.href);
+      if (category) {
+        url.searchParams.set("category", category);
+      } else {
+        url.searchParams.delete("category");
+      }
+      // Preserve fn param if present
+      if (!urlParams.fn) {
+        url.searchParams.delete("fn");
+      }
+      window.history.replaceState({}, "", url.toString());
+    },
+    [urlParams.fn]
+  );
+
+  const filteredPrecompiles = useMemo(() => {
+    if (!activeCategory) return precompiles;
+    return precompiles.filter((p) => p.badge === activeCategory);
+  }, [activeCategory]);
 
   const isCustomRpc = customRpc.trim().length > 0;
 
@@ -458,14 +514,53 @@ function App() {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Available Reads
           </h2>
-          <div className="grid gap-4">
-            {precompiles.map((config) => (
-              <PrecompileCard
-                key={config.functionName}
-                config={config}
-                publicClient={publicClient}
-              />
+          <div className="flex flex-wrap gap-2 mb-6">
+            <button
+              onClick={() => handleCategoryChange(null)}
+              className="cursor-pointer"
+            >
+              <Badge
+                variant={activeCategory === null ? "default" : "secondary"}
+              >
+                All
+              </Badge>
+            </button>
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() =>
+                  handleCategoryChange(activeCategory === cat ? null : cat)
+                }
+                className="cursor-pointer"
+              >
+                <Badge
+                  variant={activeCategory === cat ? "default" : "secondary"}
+                >
+                  {cat}
+                </Badge>
+              </button>
             ))}
+          </div>
+          <div className="grid gap-4">
+            {filteredPrecompiles.map((config) => {
+              const isTargeted = urlParams.fn === config.functionName;
+              const hasAllInputs =
+                config.inputs.length === 0 ||
+                config.inputs.every(
+                  (input) =>
+                    (urlParams.inputValues[input.name] || "").trim() !== ""
+                );
+              return (
+                <PrecompileCard
+                  key={config.functionName}
+                  config={config}
+                  publicClient={publicClient}
+                  targeted={isTargeted}
+                  initialValues={isTargeted ? urlParams.inputValues : undefined}
+                  autoExecute={isTargeted && hasAllInputs}
+                />
+              );
+            })}
           </div>
         </section>
 
