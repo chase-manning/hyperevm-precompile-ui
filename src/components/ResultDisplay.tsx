@@ -1,27 +1,5 @@
 import { memo } from "react";
-
-function isPrimitive(
-  value: unknown
-): value is bigint | boolean | number | string {
-  return (
-    typeof value === "bigint" ||
-    typeof value === "boolean" ||
-    typeof value === "number" ||
-    typeof value === "string"
-  );
-}
-
-function formatValue(value: unknown): string {
-  if (typeof value === "bigint") return value.toString();
-  if (typeof value === "boolean") return value ? "true" : "false";
-  if (typeof value === "number") return value.toString();
-  if (typeof value === "string") return value;
-  return String(value);
-}
-
-function isNamedKey(key: string): boolean {
-  return isNaN(Number(key));
-}
+import { isPrimitive, formatValue, isNamedKey } from "@/lib/result-display-utils";
 
 interface ResultDisplayProps {
   data: unknown;

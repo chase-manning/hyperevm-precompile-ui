@@ -18,6 +18,7 @@ import {
 import { ResultDisplay } from "@/components/ResultDisplay";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/config/contract";
 import { validateInput } from "@/lib/validation";
+import { parseArg } from "@/lib/parse-arg";
 import { Info } from "lucide-react";
 import type { PublicClient } from "viem";
 import type { ExtractAbiFunctionNames } from "abitype";
@@ -41,23 +42,6 @@ export interface PrecompileConfig {
   description: string;
   badge: string;
   inputs: InputConfig[];
-}
-
-function parseArg(value: string, type: InputConfig["type"]): unknown {
-  const trimmed = value.trim();
-  if (type === "address") return trimmed as `0x${string}`;
-  if (type === "uint64") {
-    try {
-      return BigInt(trimmed);
-    } catch {
-      throw new Error(`Invalid uint64 value: "${trimmed}"`);
-    }
-  }
-  const num = Number(trimmed);
-  if (Number.isNaN(num)) {
-    throw new Error(`Invalid number: "${trimmed}"`);
-  }
-  return num;
 }
 
 interface PrecompileCardProps {
