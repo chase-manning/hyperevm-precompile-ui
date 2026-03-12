@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Sun, Moon, Github, Settings, RotateCcw } from "lucide-react";
+import { Sun, Moon, Github, Settings, RotateCcw, Search } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { makePublicClient, DEFAULT_RPC_URL } from "@/config/client";
 import { cn } from "@/lib/utils";
@@ -327,6 +327,51 @@ const precompiles: PrecompileConfig[] = [
   },
 ];
 
+const CATEGORIES = [
+  "All",
+  "System",
+  "User",
+  "Perps",
+  "Spot",
+  "Vaults",
+  "Staking",
+] as const;
+
+type Category = (typeof CATEGORIES)[number];
+
+function getCategoryFromUrl(): Category {
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get("category");
+  if (category && CATEGORIES.includes(category as Category)) {
+    return category as Category;
+  }
+  return "All";
+}
+
+function getSearchFromUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("search") || "";
+}
+
+function updateUrlParams(category: Category, search: string) {
+  const params = new URLSearchParams(window.location.search);
+  if (category !== "All") {
+    params.set("category", category);
+  } else {
+    params.delete("category");
+  }
+  if (search.trim()) {
+    params.set("search", search.trim());
+  } else {
+    params.delete("search");
+  }
+  const query = params.toString();
+  const newUrl = query
+    ? `${window.location.pathname}?${query}`
+    : window.location.pathname;
+  window.history.replaceState(null, "", newUrl);
+}
+
 function getStoredRpc(): string {
   return safeGetItem(STORAGE_KEYS.CUSTOM_RPC_URL) || "";
 }
@@ -335,6 +380,9 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
   const [customRpc, setCustomRpc] = useState(getStoredRpc);
+  const [searchQuery, setSearchQuery] = useState(getSearchFromUrl);
+  const [activeCategory, setActiveCategory] =
+    useState<Category>(getCategoryFromUrl);
 
   const rpcError = useMemo(() => validateRpcUrl(customRpc), [customRpc]);
 
@@ -361,6 +409,38 @@ function App() {
   );
 
   const isCustomRpc = customRpc.trim().length > 0 && !rpcError;
+
+  // Sync filter state to URL
+  useEffect(() => {
+    updateUrlParams(activeCategory, searchQuery);
+  }, [activeCategory, searchQuery]);
+
+  const filteredPrecompiles = useMemo(() => {
+    return precompiles.filter((config) => {
+      // Category filter
+      if (activeCategory !== "All" && config.badge !== activeCategory) {
+        return false;
+      }
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        return (
+          config.title.toLowerCase().includes(query) ||
+          config.description.toLowerCase().includes(query) ||
+          config.functionName.toLowerCase().includes(query)
+        );
+      }
+      return true;
+    });
+  }, [activeCategory, searchQuery]);
+
+  const handleCategoryChange = useCallback((category: Category) => {
+    setActiveCategory(category);
+  }, []);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -481,15 +561,75 @@ function App() {
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-6">
             Available Reads
           </h2>
-          <div className="grid gap-4">
-            {precompiles.map((config) => (
-              <PrecompileCard
-                key={config.functionName}
-                config={config}
-                publicClient={publicClient}
+
+          <div className="mb-6 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search precompiles..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-9"
+                aria-label="Search precompiles by name or description"
               />
-            ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {CATEGORIES.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className={cn(
+                    "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium transition-colors cursor-pointer",
+                    activeCategory === category
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  )}
+                  aria-pressed={activeCategory === category}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Showing {filteredPrecompiles.length} of {precompiles.length}{" "}
+              precompile{precompiles.length !== 1 ? "s" : ""}
+            </p>
           </div>
+
+          {filteredPrecompiles.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredPrecompiles.map((config) => (
+                <PrecompileCard
+                  key={config.functionName}
+                  config={config}
+                  publicClient={publicClient}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-card p-8 text-center">
+              <p className="text-muted-foreground">
+                No precompiles match your{" "}
+                {searchQuery.trim() && activeCategory !== "All"
+                  ? "search and filter"
+                  : searchQuery.trim()
+                    ? "search"
+                    : "filter"}
+                .
+              </p>
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setActiveCategory("All");
+                }}
+                className="mt-3 text-sm text-primary hover:text-primary/80 underline underline-offset-4 transition-colors cursor-pointer"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
         </section>
 
         <Separator className="mt-10 mb-6" />
